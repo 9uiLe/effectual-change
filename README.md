@@ -83,14 +83,17 @@ ln -s "$HOME/.local/share/effectual-change/skills/effectual-change" "$HOME/.agen
 
 ### CLIによる簡易導入（任意）
 
-[Vercel skills CLI](https://github.com/vercel-labs/skills) のインストール機能も利用できます。以下のコマンドは**外部CLIと依存コードを実行する**ため、組織のセキュリティポリシーに合わせてCLIの提供元・バージョン・依存を確認してください。
+[Vercel skills CLI](https://github.com/vercel-labs/skills) のインストール機能も利用できます。以下のコマンドは**外部CLIと依存コードを実行する**ため、組織のセキュリティポリシーに合わせてCLIの提供元・バージョン・依存を確認してください。未確認の最新版を無条件に実行せず、監査済みバージョンを明示してください。
 
 ~~~bash
+# 監査したCLIのバージョン番号に置き換えてください
+SKILLS_CLI_VERSION=REVIEWED_CLI_VERSION
+
 # npm
-npx skills add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
+npx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
 
 # pnpm
-pnpm dlx skills add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
+pnpm dlx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
 ~~~
 
 既定ではプロジェクト単位。ユーザー共通にする場合は `-g` を指定します。npmとpnpmのどちらかが一律に安全というわけではありません。導入後は各製品のSkill配置先に `SKILL.md` と参照資料が揃っているかを確認してください。これらのCLIによるインストールと実機での起動は、現時点で未検証です。
