@@ -44,6 +44,9 @@ def auth_check(state: Path) -> Path:
             raise RuntimeError(f"Missing executable: {name}")
     if not (SKILL / "SKILL.md").is_file() or not (EVAL / "grade.py").is_file():
         raise RuntimeError("Use this runner from the effectual-change evaluation branch")
+    # Do not launch paid model calls when the local controller's own checks fail.
+    run([sys.executable, "-m", "unittest", "discover",
+         "-s", str(EVAL), "-p", "test_*.py", "-v"])
     codex_home = state / "codex-home"
     private_dir(codex_home)
     if list(codex_home.rglob("SKILL.md")):
