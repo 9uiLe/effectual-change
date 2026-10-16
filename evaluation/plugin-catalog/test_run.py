@@ -30,7 +30,7 @@ class FakeCodex:
                 "item": {
                     "type": "command_execution",
                     "command": "cat .agents/skills/effectual-change/SKILL.md",
-                    "status": "completed",
+                    "status": "completed", "exit_code": 0,
                 }
             }) + "\n").encode("utf-8"))
         self.out.write((json.dumps({"type": "turn.completed", "usage": {
@@ -126,7 +126,9 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(control["resolved_model_in_events"], "test-model")
             self.assertEqual(treatment["resolved_model_in_events"], "test-model")
             self.assertFalse(control["skill_read_command_observed"])
+            self.assertFalse(control["skill_read_command_attempted"])
             self.assertTrue(treatment["skill_read_command_observed"])
+            self.assertTrue(treatment["skill_read_command_attempted"])
             self.assertFalse(control["project_skill_present"])
             self.assertTrue(treatment["project_skill_present"])
             self.assertEqual(len(calls), 2)
@@ -172,6 +174,7 @@ class RunnerTests(unittest.TestCase):
                     "grade": {"passed": 8, "total": 8},
                     "project_skill_present": side == "treatment",
                     "skill_read_command_observed": side == "treatment",
+                    "skill_read_command_attempted": side == "treatment",
                     "resolved_model_in_events": None,
                     "artifacts": "/private/secret-path",
                 } for side in ("control", "treatment")
@@ -190,8 +193,45 @@ class RunnerTests(unittest.TestCase):
         sample["trials"]["control"]["skill_read_command_observed"] = True
         self.assertFalse(runner.exposure_evidence(sample))
         sample["trials"]["control"]["skill_read_command_observed"] = False
+        sample["trials"]["control"]["skill_read_command_attempted"] = True
+        self.assertFalse(runner.exposure_evidence(sample))
+        sample["trials"]["control"]["skill_read_command_attempted"] = False
         sample["trials"]["treatment"]["skill_read_command_observed"] = False
         self.assertFalse(runner.exposure_evidence(sample))
+
+    def test_read_evidence_needs_a_completed_command(self):
+        item = {"type": "command_execution",
+                "command": "cat .agents/skills/effectual-change/SKILL.md"}
+        self.assertEqual(
+            runner.skill_command_evidence([{"type": "item.started", "item": item}]),
+            (True, False),
+        )
+        self.assertEqual(
+            runner.skill_command_evidence([
+                {"type": "item.completed", "item": {**item, "exit_code": 1}}
+            ]),
+            (True, False),
+        )
+        self.assertEqual(
+            runner.skill_command_evidence([
+                {"type": "item.completed", "item": {**item, "exit_code": 0}}
+            ]),
+            (True, True),
+        )
+        self.assertEqual(
+            runner.skill_command_evidence([
+                {"type": "item.completed", "item": {**item, "status": "completed"}}
+            ]),
+            (True, True),
+        )
+        self.assertEqual(
+            runner.skill_command_evidence([
+                {"type": "item.completed", "item": {
+                    **item, "command": "cat unrelated/SKILL.md", "exit_code": 0
+                }}
+            ]),
+            (False, False),
+        )
 
     def test_main_obeys_selected_order(self):
         calls = []
@@ -204,6 +244,7 @@ class RunnerTests(unittest.TestCase):
                 "seconds": 1.0, "tokens": {"input_tokens": 1},
                 "project_skill_present": side == "treatment",
                 "skill_read_command_observed": side == "treatment",
+                "skill_read_command_attempted": side == "treatment",
                 "resolved_model_in_events": None,
             }
 
