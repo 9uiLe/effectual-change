@@ -205,14 +205,7 @@ def trial(side: str, checkout: Path, out: Path, codex_home: Path,
         values = [u[key] for u in usage if isinstance(u, dict) and
                   isinstance(u.get(key), int)]
         metrics[key] = sum(values) if values else None
-    observed = any(
-        "effectual-change" in str(item.get("command", ""))
-        and "SKILL.md" in str(item.get("command", ""))
-        for obj in events
-        for item in [obj.get("item", {})]
-        if obj.get("type") in ("item.started", "item.completed")
-        and isinstance(item, dict)
-    )
+    attempted, observed = skill_command_evidence(events)
     # Standard Codex exec JSONL may expose only thread_id and usage, not a
     # resolved model name. Never infer model identity from the --model flag.
     event_models = set()
@@ -247,6 +240,7 @@ def trial(side: str, checkout: Path, out: Path, codex_home: Path,
         "head_after": head_after, "seconds": round(time.monotonic()-started, 2),
         "tokens": metrics,
         "skill_read_command_observed": observed,
+        "skill_read_command_attempted": attempted,
         "project_skill_present": project_skill_present,
         "resolved_model_in_events": resolved_model,
         "stream_errors": any(e.get("type") in ("turn.failed", "error") for e in events),
@@ -292,6 +286,32 @@ def grade(checkout: Path, side: str, out: Path) -> dict:
             "total": data.get("total"), "grade_file": str(stdout)}
 
 
+def skill_command_evidence(events: list[dict]) -> tuple[bool, bool]:
+    """Return (attempted, completed) reads of this Skill from command events.
+
+    Completion is evidence of a run command; when exit_code is absent the
+    command's success cannot be independently established from JSONL alone.
+    """
+    attempts = False
+    completions = False
+    for event in events:
+        kind = event.get("type")
+        if kind not in ("item.started", "item.completed"):
+            continue
+        item = event.get("item")
+        if not isinstance(item, dict) or item.get("type") != "command_execution":
+            continue
+        command = item.get("command", "")
+        if not isinstance(command, str) or (
+            "effectual-change" not in command or "SKILL.md" not in command
+        ):
+            continue
+        attempts = True
+        if kind == "item.completed" and item.get("exit_code") in (None, 0):
+            completions = True
+    return attempts, completions
+
+
 def exposure_evidence(report: dict) -> bool:
     """Detect explicit treatment use and obvious control contamination.
 
@@ -300,6 +320,7 @@ def exposure_evidence(report: dict) -> bool:
     a, b = report["trials"]["control"], report["trials"]["treatment"]
     return (
         not a["project_skill_present"]
+        and not a["skill_read_command_attempted"]
         and not a["skill_read_command_observed"]
         and b["project_skill_present"]
         and b["skill_read_command_observed"]
@@ -340,9 +361,11 @@ def markdown(report: dict) -> str:
         + "\n\nA single pair is INCONCLUSIVE evidence about Skill efficacy, "
         "even when both candidates pass.\n\n"
         f"Control project Skill present: {control['project_skill_present']}; "
-        f"Effectual Change read command observed: {control['skill_read_command_observed']}.\n"
+        f"Effectual Change read attempted: {control['skill_read_command_attempted']}; "
+        f"completed: {control['skill_read_command_observed']}.\n"
         f"Treatment project Skill present: {treatment['project_skill_present']}; "
-        f"Effectual Change read command observed: {treatment['skill_read_command_observed']}.\n"
+        f"Effectual Change read attempted: {treatment['skill_read_command_attempted']}; "
+        f"completed: {treatment['skill_read_command_observed']}.\n"
         f"Exposure evidence sufficient for this pilot: {exposure_evidence(report)}. "
         "No command read does not rule out hidden system/admin Skills; a present "
         "project Skill is not proof of use.\n\n"
