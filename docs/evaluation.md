@@ -49,6 +49,50 @@
 
 追加の実務観察は[Issue #3](https://github.com/9uiLe/effectual-change/issues/3)で管理する。[Issue #17](https://github.com/9uiLe/effectual-change/issues/17)（SpeakerDeckの本文なしスライド）も**実際にSkillありのCodexを実行済み**。初回のAgent実装は不正な空Transcriptを許容しており、独立レビューの負例テストで発見・修正した。Agentの最終回答に記載された修正後テスト実行はイベント記録で裏付けられなかった。修正後の17件・26件のテスト成功は**独立レビューの成果**であり、Agent自身のテスト成功として扱わない。単独試行のためSkillの因果的な効果はINCONCLUSIVE。試行後、製品側の[plugins #106](https://github.com/9uiLe/plugins/issues/106)は別途作成された[plugins PR #127](https://github.com/9uiLe/plugins/pull/127)のマージで解決済み（Agent試行の差分そのものではない）。
 
+## Phase 1追加観察：scope-guardのglob境界（Issue #3）
+
+2026-10-16、個人リポジトリの一覧15件（公開14件・非公開1件）の概要と、公開リポジトリの未解決Issueを確認した。非公開リポジトリの内容は調査・公開していない。CLI系の`plugins`・`hamio`・`wts`を絞って読み、`plugins`の既存hookに実在する不具合を見つけた。これは全リポジトリの監査ではない。
+
+既存の[wts #17](https://github.com/9uiLe/wts/issues/17)はApple Silicon macOS向けNixパッケージ、[nibble #36](https://github.com/9uiLe/nibble/issues/36)はiOS SimulatorでのRive性能評価を要求する。このLinux環境だけでは要求を検証できないため今回の題材から外した。過去に修正済みのSpeakerDeck課題を再び未解決課題とは扱わなかった。
+
+### 対象・条件・受け入れ境界
+
+- **製品開始版：** [plugins `48bcdc16a5480921cf95f3b9fa380ca43f676dbc`](https://github.com/9uiLe/plugins/tree/48bcdc16a5480921cf95f3b9fa380ca43f676dbc)。対象は`model-strategy`の[scope-guard](https://github.com/9uiLe/plugins/blob/48bcdc16a5480921cf95f3b9fa380ca43f676dbc/plugins/model-strategy/hooks/scope-guard.mjs)。
+- **Skill版：** [effectual-change `2a1680b8da3042ace32f52dc06330acb17da7a03`](https://github.com/9uiLe/effectual-change/tree/2a1680b8da3042ace32f52dc06330acb17da7a03/skills/effectual-change)。現行Skill本文・意思決定ループ・運用ガイドを明示的に読んだ[Devin単独セッション](https://app.devin.ai/sessions/b460021bf394455b9b22f00a16881079)で作業した。Codex/Claude CLIによるSkill起動試験ではなく、基盤モデルIDは取得していない。
+- **環境：** Ubuntu Linux、Node.js v24.19.0、Python 3.10.12。Nodeは既存のNVM環境を読み込み、依存の追加・更新は行っていない。
+- **仕様の根拠：** 既存の[conductor mode §7](https://github.com/9uiLe/plugins/blob/48bcdc16a5480921cf95f3b9fa380ca43f676dbc/plugins/model-strategy/references/08-conductor-mode.md)は、glob範囲外の編集を警告し、`*`と`**`だけをサポートすると定める。実装コメントには`**/`を0階層にも一致させる意図がある。既存コードの誤許容を望ましい仕様とは扱わず、この契約を根拠に境界を設定した。
+- **変更要求：** `src/**/allowed.ts`で`src/allowed.ts`と多階層の同名ファイルを許容し、`src/notallowed.ts`など近接した別名は警告する。相対・絶対パス、単独の`**`・`*`、opt-in、warn-only、fail-open、同一セッション・パスの重複抑制を維持する。これは調査中に発見・選定した課題であり、事前に別の担当者が定めた製品Issueや独立した受け入れ判定はない。
+
+### 実際に選んだ行動と根拠
+
+| 判断の局面 | 選んだ行動・得た事実 | 変更への影響・探索の停止理由 |
+| --- | --- | --- |
+| 実装と仕様の差が不明 | 対象コード、§7、既存テストを確認し、一時ディレクトリのbaselineで公開関数を呼んだ。`src/**/allowed.ts`が`src/notallowed.ts`まで無警告で許容した。 | 文書の範囲外警告契約と食い違う観測として扱った。原因は`**/`を単なる`.*`に変換して区切りを失うこと。過去の履歴調査は現在の修正方針を変えないと判断し、追加しなかった。 |
+| 安全性が依存する境界 | 「0階層を許す修正で、ファイル名の接頭辞まで許してはいけない」を反証対象に選んだ。正例と近接負例を、相対・絶対パス各12入力でテスト化した。 | `**/`を必須の1階層以上にしてしまう回帰と、負例の誤許容を同じ表で検出する。文書上の契約内の修正に限定できるため、新しい製品方針の決定は要求しなかった。 |
+| 再現だけで十分か | 実装前に追加テストを実行し、近接ファイル名の6 subtestが失敗した。既存テストにはこの境界がなかった。 | 試行後のレビューで初めて負例を足したのではなく、最初の実装より前に負例を固定した。発見した失敗を受け、探索から実装へ進んだ。 |
+| 必要十分な変更 | `**/`だけを任意のディレクトリ接頭辞`(?:.*/)?`へ変更し、単独の`**`は維持した。 | 実装とテストの2ファイルに限定。globライブラリの導入、他のパス正規化、hookの権限強化、Skill本文の変更はしなかった。 |
+| 検証の対象・報告 | 同じテストを再実行し、関連プラグインの全Nodeテストと、hook実プロセスのstdin/stdoutを確認した。 | 関数のテストだけでClaude Code上の連携成功とは主張しない。Linuxで未実施の製品全体検証はmacOS CIと区別する。 |
+
+### 実行した検証と結果
+
+製品差分は[plugins PR #129](https://github.com/9uiLe/plugins/pull/129)、ローカル検証対象は[修正コミット `cdb6f52`](https://github.com/9uiLe/plugins/commit/cdb6f52)。実行コマンドと終了状態は上記Devinセッションのツール記録で確認できる。Codex JSONLは生成していないため、既存のCodex用監査器による監査済みとは扱わない。
+
+| 検証 | 実際の観測 |
+| --- | --- |
+| 実装前：追加テスト + 開始版のhook | `node --test plugins/model-strategy/tests/scope-guard.test.mjs`は終了1。近接負例6 subtestが失敗（親testを含むNode集計は27 pass / 7 fail）。 |
+| 修正後：同じ対象テスト | 同コマンドは終了0、34/34 PASS。24 subtestと既存9 test、新規親testを含む集計であり、34の独立した受け入れ要件という意味ではない。 |
+| 修正後：プラグイン全Nodeテスト | `node --test plugins/model-strategy/tests/*.test.mjs`は終了0、90/90 PASS。 |
+| 構文・差分 | 変更した2ファイルの`node --check`と`git diff --check`は終了0。対象に独立した型検査・lint設定はなく、構文検査を型検査やlint成功と読み替えない。 |
+| hook実プロセス | JSON入力4回で、範囲内2入力の無出力、範囲外入力の`PreToolUse` / `SCOPE_EXPANSION`応答、同一パス2回目の無出力、全て終了0を確認。これはClaude Code本体との統合試験ではない。 |
+
+### 解釈・限界・次の判定
+
+- 既存の誤動作を仕様とせず、文書契約・負例・最小差分・実行結果へつないだ**作業経路の観察**は得られた。新しい指示を追加する根拠となる判断ミスはこの作業では確認していないため、Skill本文は変更しない。
+- **Skillの因果的な改善効果はINCONCLUSIVE。** 1条件の自己観察であり、Skillなし／あり比較でも、[pstack採用判断](pstack-adoption.md)の従来O／現行N比較でもない。課題選定・実装・テスト・解釈を同じDevinが担当し、既存の上位指示やリポジトリ規約も影響する。負例の先行選定をSkillだけの成果に帰属できない。
+- 調査対象を広く確認した時間と、局所修正の時間は交絡する。独立した時間・トークン計測や事前合意した負担の閾値はなく、効率改善・追加負担の許容性は判定しない。今回は未知の構文・境界条件を確かめる不具合修正であり、性能・UIの検証技法は評価していない。
+- 製品全体の`bash scripts/verify.sh`はmacOS/Bunを必要とするためLinuxでは未実施。Claude Code/Codex上の導入・hook連携、独立レビュー、製品へのマージはこのローカル結果に含まない。CI・レビュー・マージの状態はPRで確認する。
+- **追加観察1件として記録するが、レビュー待ち。** #2の「実施・レビュー済み2件」の達成や#3の完了は宣言しない。既存の#17と今回ではAgent・課題・環境が異なり、同じ基準の比較結果として合算しない。
+
 ## Codex実行記録と検証主張の照合（Issue #2 / #3）
 
 Issue #17では、**Agentによる「テストを実行した」という主張と、JSONLに記録された実行コマンドが一致しない**事象があった。現行Skillにも「実行していないテストを成功と言わない」という規則があるため、同じ注意書きを増やす前に**観察・独立検証を容易にする**。
@@ -82,7 +126,7 @@ python3 evaluation/trace-evidence/audit.py \
 
 ### 文書化済みだが未検証の論点
 
-規則は文書化され、[意思決定ルールの実務検証](#意思決定ルールの実務検証issue-2)の観点で確かめる方法も決まっているが、十分な検証がない。Phase 1の実務試行は[#17](https://github.com/9uiLe/effectual-change/issues/17)の1件のみ（単独試行のためINCONCLUSIVE）で、最低2件に達していない。
+規則は文書化され、[意思決定ルールの実務検証](#意思決定ルールの実務検証issue-2)の観点で確かめる方法も決まっているが、十分な検証がない。Phase 1は[#17](https://github.com/9uiLe/effectual-change/issues/17)の実務試行に加え、上記scope-guardの追加観察を実施した。後者は独立レビュー待ちであり、「実施・レビュー済み2件」の達成とは数えない。いずれも単独試行のため因果的効果はINCONCLUSIVE。
 
 - **5原則を行動選択のための一貫した規則にどう落とすか。** [意思決定ループ](../skills/effectual-change/references/decision-loop.md)の状況と行動の対応表に文書化済み。[#13](https://github.com/9uiLe/effectual-change/issues/13)の比較では両条件の結果に差がなく、規則が判断を変えたかは未確認。
 - **「十分にわかった」と判断する停止条件をどう定めるか。** 意思決定ループの「探索を打ち切って実装に進む条件」「探索を続けない・停止する条件」に文書化済み。実務検証の観点「適切な根拠が得られた時点で探索を終えて実装へ進めたか」で確かめる。
@@ -98,6 +142,6 @@ python3 evaluation/trace-evidence/audit.py \
 
 ## 次の作業
 
-[#6](https://github.com/9uiLe/effectual-change/issues/6)の初期公開配布は完了としてクローズ（Claude Code実機は未契約のため保留）。[#17](https://github.com/9uiLe/effectual-change/issues/17)の実務試行で見つかった「負例の見落とし」「実行していないテストの報告」を、[#2](https://github.com/9uiLe/effectual-change/issues/2)・[#3](https://github.com/9uiLe/effectual-change/issues/3)の次の評価軸とする。[#12の設計判断](pstack-adoption.md)で定めた従来Skill O／最小差分Nの比較で、成果と追加負担を確認する。実行していない課題や未マージの製品修正は完了扱いしない。
+[#6](https://github.com/9uiLe/effectual-change/issues/6)の初期公開配布は完了としてクローズ（Claude Code実機は未契約のため保留）。[#17](https://github.com/9uiLe/effectual-change/issues/17)で見つかった「負例の見落とし」「実行していないテストの報告」を軸に、scope-guardの追加観察をレビューする。その結果も踏まえ、[#12の設計判断](pstack-adoption.md)で定めた従来Skill O／最小差分Nの比較で、成果と追加負担を確認する。今回の単独観察をO／N比較の代わりにはせず、実行していない課題や未マージの製品修正は完了扱いしない。
 
 [#4](https://github.com/9uiLe/effectual-change/issues/4)は[PR #21](https://github.com/9uiLe/effectual-change/pull/21)のマージで完了としてクローズ。[原義と適用範囲](theory.md)で一次資料に基づき原義と本プロジェクトの応用を区別し、適用できるケース／適用しにくいケースと既存手法との違いを**仮説として**記述した。理論上の整理であり、フレームワークの効果を実証したものではない。
