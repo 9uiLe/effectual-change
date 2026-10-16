@@ -33,7 +33,7 @@ Effectual Change は、エフェクチュエーションの5原則に着想を�
 | **レモネード / Lemonade** | 調査・実験での予想外の発見は、設計をどう変えるか？ |
 | **飛行機のパイロット / Pilot in the Plane** | 不確かな将来を予測しすぎず、現在の変更・検証・復旧をどう制御可能にするか？ |
 
-詳しくは [原則の解釈と注意点](docs/principles.md) を参照してください。
+詳しくは [原則の解釈と注意点](skills/effectual-change/references/principles.md) を参照してください。
 
 ## 意思決定ループ
 
@@ -45,11 +45,65 @@ Effectual Change は、エフェクチュエーションの5原則に着想を�
 
 この番号は固定の工程順ではありません。状況に応じて繰り返します。
 
-詳細は [意思決定ループ](docs/decision-loop.md) に記述しています。
+詳細は [意思決定ループ](skills/effectual-change/references/decision-loop.md) に記述しています。
 
 ## まず試す
 
-[変更意思決定記録テンプレート](templates/change-decision.md) に対象タスクを当てはめ、現状・未知・変更範囲を記録します。AIへの基本的な方針には [エージェント向け運用ガイド](docs/agent-playbook.md) を利用できます。
+[変更意思決定記録テンプレート](skills/effectual-change/assets/change-decision.md) に対象タスクを当てはめ、現状・未知・変更範囲を記録します。AIへの基本的な方針には [エージェント向け運用ガイド](skills/effectual-change/references/agent-playbook.md) を利用できます。
+
+
+## Agent Skill
+
+Claude Code と Codex で共有できる **Agent Skills形式のSkill** を提供します。入口は [SKILL.md](skills/effectual-change/SKILL.md)、詳細は `references/`、任意の記録テンプレートは `assets/` にあります。Skillとしてインストールするのは `skills/effectual-change/` ディレクトリだけで、npmパッケージや実行スクリプトは不要です。
+
+### 使い方
+
+既存のコードベースで変更を依頼するときに使用します。Claude Codeでは `/effectual-change`、Codexでは `$effectual-change` で明示的に呼び出せます。発見・自動起動は各製品の設定とSkillの説明文に依存します。
+
+このSkillは「設計方針の相談のみ」で止めるものではありません。コード変更が依頼されている場合は既存コードとリスクを調べた上で、実装・検証まで進めます。担当者しか決められない仕様は、根拠とともに確認します。
+
+### セキュリティ重視の導入（Git）
+
+外部のnpm CLIを実行せず、内容を確認したGitコミットから導入する例です（macOS / Linux）。`REVIEWED_COMMIT_SHA`は実際に監査したコミットSHAに置き換えてください。**公開前のPrivateリポジトリではGitHubへのアクセス権が必要**です。
+
+~~~bash
+git clone https://github.com/9uiLe/effectual-change.git "$HOME/.local/share/effectual-change"
+git -C "$HOME/.local/share/effectual-change" checkout --detach REVIEWED_COMMIT_SHA
+
+# SKILL.md と参照資料を確認してから配置する
+find "$HOME/.local/share/effectual-change/skills/effectual-change" -type f
+
+# この例はユーザー共通（全プロジェクト）への配置
+mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
+ln -s "$HOME/.local/share/effectual-change/skills/effectual-change" "$HOME/.claude/skills/effectual-change"
+ln -s "$HOME/.local/share/effectual-change/skills/effectual-change" "$HOME/.agents/skills/effectual-change"
+~~~
+
+既存の同名Skillを上書きしないでください。特定のプロジェクトだけに適用する場合は、そのプロジェクトの `.claude/skills/` と `.agents/skills/` に配置します。Gitによる更新時は `git fetch` の後に差分を確認し、承認したコミットへ切り替えてください。アンインストール時は該当するリンクのみ削除し、元のリポジトリを誤って削除しないでください。
+
+### CLIによる簡易導入（任意）
+
+[Vercel skills CLI](https://github.com/vercel-labs/skills) のインストール機能も利用できます。以下のコマンドは**外部CLIと依存コードを実行する**ため、組織のセキュリティポリシーに合わせてCLIの提供元・バージョン・依存を確認してください。
+
+~~~bash
+# npm
+npx skills add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
+
+# pnpm
+pnpm dlx skills add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
+~~~
+
+既定ではプロジェクト単位。ユーザー共通にする場合は `-g` を指定します。npmとpnpmのどちらかが一律に安全というわけではありません。導入後は各製品のSkill配置先に `SKILL.md` と参照資料が揃っているかを確認してください。これらのCLIによるインストールと実機での起動は、現時点で未検証です。
+
+### Skillの検証
+
+Python標準ライブラリのみでSkillのfrontmatter・参照ファイル・自己完結性を検査できます。
+
+~~~bash
+python3 -m unittest discover -s tests -v
+~~~
+
+**検証できる範囲：** ファイル構造とリンクの静的整合性。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
 
 
 ## 大切な区別
@@ -74,4 +128,4 @@ Effectual Change は、エフェクチュエーションの5原則に着想を�
 
 ## ライセンス
 
-未設定。公開・再利用条件は今後決定します。
+未設定。公開前にライセンスを決定し、`LICENSE`を設置する必要があります。
