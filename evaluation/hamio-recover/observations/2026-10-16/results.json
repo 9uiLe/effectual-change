@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-16",
+  "preregistration_commit": "377774b3dc9b790536333dced45b6e33c0edf0a9",
+  "protocol_sha256": "29defbe22dccf9a31661c629d94f37ae924dbb94f1018cd8ae9b48f9daf7901f",
+  "baseline_sha": "59a675b4b02478fd75c230263f9ef92a385f069c",
+  "runtime_image_id": "sha256:f7bbf17a2429835504b49be6459545291bd1500e132c47cfc4e341583282faa1",
+  "pair_count": 1,
+  "model_snapshot": "unknown",
+  "primary_conclusion": "NO_OBSERVED_DIFFERENCE_ON_PREREGISTERED_CHECKS",
+  "general_skill_efficacy": "INCONCLUSIVE",
+  "candidate_or_grader_changed_after_dispatch": false,
+  "arms": {
+    "control": {
+      "session_url": "https://app.devin.ai/sessions/594be8d0d4664c109be3343af368ed33",
+      "patch_file": "control.patch",
+      "patch_sha256": "082e56192530124a9795a9a987c4728b51e2d338995510cb0f7af7dc3ac1cd7e",
+      "original_private_evidence_sha256": "15e13ef34e322a0610e7418aa7d38467dd67a4e43ffc7da2fae8a2e3f96c1776",
+      "original_private_summary_sha256": "adb13bad9c84672904d2d404011b61ecb52bf4f917dc46abbcb7591c7c562967",
+      "patch_scope": {
+        "files": 12,
+        "insertions": 915,
+        "deletions": 14
+      },
+      "fixed_grader": {
+        "held_out": {
+          "exit_code": 0,
+          "passed": 60,
+          "failed": 0,
+          "failed_checks": []
+        },
+        "frozen_quality": {
+          "exit_code": 0,
+          "passed": 114,
+          "failed": 0,
+          "failed_checks": []
+        },
+        "native_build": {
+          "exit_code": 0,
+          "passed": 0,
+          "failed": 0,
+          "failed_checks": []
+        },
+        "native_held_out": {
+          "exit_code": 0,
+          "passed": 60,
+          "failed": 0,
+          "failed_checks": []
+        }
+      },
+      "auxiliary_candidate_owned_check": {
+        "first": {
+          "exit_code": 1,
+          "passed": 198,
+          "failed": 1,
+          "failed_checks": [
+            "real TTY routes UI to stderr, returns answers to stdout and masks secrets"
+          ]
+        },
+        "serial_repeat": {
+          "exit_code": 1,
+          "passed": 198,
+          "failed": 1,
+          "failed_checks": [
+            "real TTY routes UI to stderr, returns answers to stdout and masks secrets"
+          ]
+        }
+      }
+    },
+    "treatment": {
+      "session_url": "https://app.devin.ai/sessions/f26ebe02c0bc45efabbf2a97ff95a030",
+      "patch_file": "treatment.patch",
+      "patch_sha256": "4c5ea275916107d1a37cf1c562b84e2a17363b3ab12b77256819fe2dc4e709a3",
+      "original_private_evidence_sha256": "d36d1268cee53acb9b0279cc7a26e38190f381a9f42aed21ec3ac8f528d8a109",
+      "original_private_summary_sha256": "8ed4edd68cc019cde9590489ccf5d5535d548d5ed90c02ea4c70e956a05653b4",
+      "patch_scope": {
+        "files": 8,
+        "insertions": 696,
+        "deletions": 12
+      },
+      "fixed_grader": {
+        "held_out": {
+          "exit_code": 0,
+          "passed": 60,
+          "failed": 0,
+          "failed_checks": []
+        },
+        "frozen_quality": {
+          "exit_code": 0,
+          "passed": 114,
+          "failed": 0,
+          "failed_checks": []
+        },
+        "native_build": {
+          "exit_code": 0,
+          "passed": 0,
+          "failed": 0,
+          "failed_checks": []
+        },
+        "native_held_out": {
+          "exit_code": 0,
+          "passed": 60,
+          "failed": 0,
+          "failed_checks": []
+        }
+      },
+      "auxiliary_candidate_owned_check": {
+        "first": {
+          "exit_code": 0,
+          "passed": 181,
+          "failed": 0,
+          "failed_checks": []
+        },
+        "serial_repeat": {
+          "exit_code": 0,
+          "passed": 181,
+          "failed": 0,
+          "failed_checks": []
+        }
+      }
+    }
+  },
+  "supplementary_check_policy": "Exploratory, not a new weighted score. First auxiliary Control run overlapped Treatment primary grading; then both auxiliary checks were repeated serially without code, image or limit changes. Both attempts retained; timeout cause unresolved."
+}

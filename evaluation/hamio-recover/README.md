@@ -2,6 +2,8 @@
 
 実在する `9uiLe/hamio` への機能追加を、同じ開始版から別々のDevinセッションで実装する1ペアの比較。小さなglob修正だったscope-guard比較より、CLI・Recording検証・ファイル公開・中断・文書を横断する題材を使う。既存不具合を発見したという主張ではない。
 
+2026-10-16の[比較結果と限界](../../docs/hamio-recover-devin-comparison.md)、[機械可読結果](observations/2026-10-16/results.json)を公開した。返却patchと監査pointerも比較記録から参照できる。固定採点では両条件とも60/60・固定回帰114/114・native60/60。一方、追加テスト込みの補助検査でControlの既存TTYテスト1件が2回timeoutしたため、全検査が同じ結果だったとは扱わない。
+
 ## 事前固定
 
 - 開始版: `59a675b4b02478fd75c230263f9ef92a385f069c`（master）。
