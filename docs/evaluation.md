@@ -70,6 +70,12 @@ python3 evaluation/trace-evidence/audit.py \
 
 このツールはSkillの機能や品質を評価した結果ではなく、**評価に使う実行証拠の観察手段**である。実務上の因果的効果は追加のSkillなし/あり比較が必要。
 
+## pstack由来の条件付き技法の評価（Issue #12）
+
+[再調査と設計判断](pstack-adoption.md)に基づき、歴史的意図の条件付き調査、安全性の仮説と検証の接続、対象別の検証選択を既存Skillへ試験的に組み込む。新しいSkill・依存・必須ログは追加しない。
+
+この差分の評価は、Skillなし／ありの比較とは別に、**従来Skill O／最小差分N**を同じ実務課題で比べる。設計文書に比較条件・独立採点・負担と成果の観測項目を記載した。追加の実機比較は未実施で、改善効果と負担の妥当性はINCONCLUSIVE。Issue #12の実務検証の受け入れ条件を満たしたとは扱わない。
+
 ## 未解決の論点
 
 規則や考え方として文書化されているかと、それを確かめる検証方法が決まっているかで分ける。どちらの区分も、効果は実証されていない。
@@ -92,6 +98,6 @@ python3 evaluation/trace-evidence/audit.py \
 
 ## 次の作業
 
-[#6](https://github.com/9uiLe/effectual-change/issues/6)の初期公開配布は完了としてクローズ（Claude Code実機は未契約のため保留）。[#17](https://github.com/9uiLe/effectual-change/issues/17)の実務試行で見つかった「負例の見落とし」「実行していないテストの報告」を、[#2](https://github.com/9uiLe/effectual-change/issues/2)・[#3](https://github.com/9uiLe/effectual-change/issues/3)の次の評価軸とする。実務で繰り返し起きる判断上の問題かを追加観察し、必要なら[#12](https://github.com/9uiLe/effectual-change/issues/12)のpstack調査に基づく最小限の改善を比較検証する。実行していない課題や未マージの製品修正は完了扱いしない。
+[#6](https://github.com/9uiLe/effectual-change/issues/6)の初期公開配布は完了としてクローズ（Claude Code実機は未契約のため保留）。[#17](https://github.com/9uiLe/effectual-change/issues/17)の実務試行で見つかった「負例の見落とし」「実行していないテストの報告」を、[#2](https://github.com/9uiLe/effectual-change/issues/2)・[#3](https://github.com/9uiLe/effectual-change/issues/3)の次の評価軸とする。[#12の設計判断](pstack-adoption.md)で定めた従来Skill O／最小差分Nの比較で、成果と追加負担を確認する。実行していない課題や未マージの製品修正は完了扱いしない。
 
 [#4](https://github.com/9uiLe/effectual-change/issues/4)は[PR #21](https://github.com/9uiLe/effectual-change/pull/21)のマージで完了としてクローズ。[原義と適用範囲](theory.md)で一次資料に基づき原義と本プロジェクトの応用を区別し、適用できるケース／適用しにくいケースと既存手法との違いを**仮説として**記述した。理論上の整理であり、フレームワークの効果を実証したものではない。
