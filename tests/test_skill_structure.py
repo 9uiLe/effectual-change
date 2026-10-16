@@ -93,7 +93,7 @@ class AgentSkillStructureTests(unittest.TestCase):
                 self.assertEqual(path.suffix, ".md", f"Unexpected bundled file: {path}")
 
     def test_relative_markdown_links_and_self_containment(self):
-        paths = [ROOT / "README.md", ROOT / "docs" / "evaluation.md"]
+        paths = [ROOT / "README.md"] + sorted((ROOT / "docs").rglob("*.md"))
         paths += sorted(SKILL_DIR.rglob("*.md"))
         for path in paths:
             for target in LOCAL_LINK.findall(path.read_text(encoding="utf-8")):

@@ -9,8 +9,8 @@ Use the five principles of effectuation as **decision lenses**, not a mandatory 
 
 ## Decide what to do next
 
-1. **Start with what exists — Bird in Hand.** Inspect only the relevant current code, tests, behavior, repository conventions, and available tools. Identify reusable means and dependencies. Keep observations, inferences, confirmed requirements, and unknowns distinct. Code that behaves a certain way is *not* necessarily the intended specification.
-2. **Bound acceptable loss — Affordable Loss.** Identify behavior that must remain intact, scope and blast radius, data or API compatibility, time/effort limits, how to verify, and how to undo an experiment. For destructive, production, security-sensitive, or irreversible work, honor existing approval and safety controls; pause if those are missing.
+1. **Start with what exists — Bird in Hand.** Inspect only the relevant current code, tests, behavior, repository conventions, and available tools. Identify reusable means and dependencies. Keep observations, inferences, confirmed requirements, and unknowns distinct. Code that behaves a certain way is *not* necessarily the intended specification. Investigate historical intent only when it could change the design; distinguish a documented past reason from an inference or a current requirement.
+2. **Bound acceptable loss — Affordable Loss.** Identify behavior that must remain intact, scope and blast radius, data or API compatibility, time/effort limits, how to verify, and how to undo an experiment. For material regression risks, connect the affected behavior to the key safety assumptions and checks that could disprove them. For destructive, production, security-sensitive, or irreversible work, honor existing approval and safety controls; pause if those are missing.
 3. **Choose the smallest useful next action.** Prioritize unknowns whose answers could materially change correctness, safety, user-visible behavior, compatibility, or acceptance criteria. Weigh impact and reversibility against the cost of learning; do not try to eliminate every unknown:
    - **Inspect or reproduce** when relevant existing behavior or dependencies are unclear.
    - **Measure or run a small isolated experiment** when an implementation or performance hypothesis matters and can be tested.
@@ -20,7 +20,7 @@ Use the five principles of effectuation as **decision lenses**, not a mandatory 
    - **Stop or escalate** when safe changes cannot be bounded or required authority is missing.
 4. **Co-create commitments — Crazy Quilt.** Where relevant, show actual behavior, screenshots, recordings, diffs, or measurements to stakeholders and convert their explicit decisions into acceptance criteria. Do not treat showing a screen, a vague reaction, or silence as agreement. Never invent observations or approvals.
 5. **Maintain control — Pilot in the Plane.** Prefer designs that are understandable, testable, maintainable, and reversible now. Avoid abstractions for speculative future features; do not sacrifice existing interfaces or necessary quality attributes in the name of minimalism.
-6. **Verify, report, and repeat as needed.** Test the changed behavior and important regressions using tools actually available. Say exactly which checks ran and which did not; record important design choices and residual uncertainty. Continue to the requested implementation if it is safe and sufficiently specified; do not stop after analysis by default.
+6. **Verify, report, and repeat as needed.** Test the changed behavior and important regressions using tools actually available. Match checks to the claim: reproduce the bug, compare performance under comparable conditions, or exercise the affected UI as appropriate. Tie results to the checked revision, environment, and command or action; say which checks ran and which did not. Record important design choices and residual uncertainty. Continue to the requested implementation if it is safe and sufficiently specified; do not stop after analysis by default.
 
 These decisions are **iterative**. A new dependency may require inspection again; new stakeholder information may change the acceptable boundaries. Do not run exhaustive discovery or compare multiple designs without a decision they would materially inform.
 
@@ -29,7 +29,7 @@ These decisions are **iterative**. A new dependency may require inspection again
 Read only the supporting files needed for the current task:
 
 - [Five principles and their limits](references/principles.md) — consult when interpreting the lenses.
-- [Decision loop and evidence labels](references/decision-loop.md) — consult when choosing among investigation, experiment, human confirmation, implementation, and stopping.
+- [Decision loop and evidence labels](references/decision-loop.md) — consult when choosing the next action, investigating historical intent, checking safety assumptions, or selecting task-specific verification.
 - [Agent operating guidelines](references/agent-playbook.md) — consult for reporting and behavior guardrails.
 - [Change decision record](assets/change-decision.md) — optional for risky, ambiguous, or architecturally significant changes; do not create a document for every trivial edit.
 
