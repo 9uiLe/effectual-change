@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import signal
 import shutil
@@ -38,6 +39,42 @@ def private_dir(path: Path) -> None:
     path.chmod(0o700)
 
 
+def conflicting_skills(codex_home: Path) -> list[Path]:
+    """Only Effectual Change conflicts; Codex may install unrelated built-ins.
+
+    Scan skill names as well as directory names. This is a local preflight,
+    NOT proof that managed/system-wide Skills cannot be visible at runtime.
+    """
+    conflicts = []
+    for skill_file in codex_home.rglob("SKILL.md"):
+        if skill_file.parent.name.casefold() == "effectual-change":
+            conflicts.append(skill_file)
+            continue
+        try:
+            with skill_file.open(encoding="utf-8") as handle:
+                start = handle.read(4096)
+        except (OSError, UnicodeError):
+            raise RuntimeError(f"Cannot inspect Codex Skill metadata: {skill_file}")
+        frontmatter = start.split("\n---", 1)[0] if start.startswith("---\n") else ""
+        if re.search(r"""(?im)^name:\s*['"]?effectual-change['"]?\s*$""",
+                     frontmatter):
+            conflicts.append(skill_file)
+    return conflicts
+
+
+def trial_order(value: str) -> tuple[str, str]:
+    """Record the realized execution order, including randomized runs."""
+    if value == "control-first":
+        return ("control", "treatment")
+    if value == "treatment-first":
+        return ("treatment", "control")
+    if value == "random":
+        return ("control", "treatment") if secrets.randbelow(2) == 0 else (
+            "treatment", "control"
+        )
+    raise ValueError(f"Unknown execution order: {value}")
+
+
 def auth_check(state: Path) -> Path:
     for name in ("git", "codex", "python3"):
         if shutil.which(name) is None:
@@ -49,8 +86,12 @@ def auth_check(state: Path) -> Path:
          "-s", str(EVAL), "-p", "test_*.py", "-v"])
     codex_home = state / "codex-home"
     private_dir(codex_home)
-    if list(codex_home.rglob("SKILL.md")):
-        raise RuntimeError("Evaluation Codex home contains installed skills")
+    conflicts = conflicting_skills(codex_home)
+    if conflicts:
+        raise RuntimeError(
+            "Evaluation Codex home exposes Effectual Change globally: "
+            + ", ".join(str(path) for path in conflicts)
+        )
     env = dict(os.environ, CODEX_HOME=str(codex_home))
     login = subprocess.run(
         ["codex", "login", "status"], env=env, capture_output=True, check=False
@@ -89,6 +130,18 @@ def checkouts(destination: Path) -> dict[str, Path]:
 
 def trial(side: str, checkout: Path, out: Path, codex_home: Path,
           model: str | None, timeout: int) -> dict:
+    # Repeat the targeted guard immediately before every trial; another run
+    # could have populated CODEX_HOME since the previous preflight.
+    conflicts = conflicting_skills(codex_home)
+    if conflicts:
+        raise RuntimeError(
+            "Effectual Change found in shared Codex home: "
+            + ", ".join(str(path) for path in conflicts)
+        )
+    skill_file = checkout / ".agents/skills/effectual-change/SKILL.md"
+    project_skill_present = skill_file.is_file()
+    if project_skill_present != (side == "treatment"):
+        raise RuntimeError(f"{side}: unexpected project Skill exposure")
     artifacts = out / (side + "-results")
     private_dir(artifacts)
     home, tmp = artifacts / "home", artifacts / "tmp"
@@ -157,8 +210,22 @@ def trial(side: str, checkout: Path, out: Path, codex_home: Path,
         and "SKILL.md" in str(item.get("command", ""))
         for obj in events
         for item in [obj.get("item", {})]
-        if isinstance(item, dict)
+        if obj.get("type") in ("item.started", "item.completed")
+        and isinstance(item, dict)
     )
+    # Standard Codex exec JSONL may expose only thread_id and usage, not a
+    # resolved model name. Never infer model identity from the --model flag.
+    event_models = set()
+    for event in events:
+        if event.get("type") not in ("thread.started", "turn.started",
+                                     "turn.completed"):
+            continue
+        for field in (event, event.get("config", {})):
+            if isinstance(field, dict):
+                model_name = field.get("model")
+                if isinstance(model_name, str) and model_name:
+                    event_models.add(model_name)
+    resolved_model = next(iter(event_models)) if len(event_models) == 1 else None
     head_after = run(
         ["git", "-C", str(checkout), "rev-parse", "HEAD"],
         capture_output=True, text=True,
@@ -179,7 +246,10 @@ def trial(side: str, checkout: Path, out: Path, codex_home: Path,
         "timed_out": timed_out, "base_preserved": head_after == BASE,
         "head_after": head_after, "seconds": round(time.monotonic()-started, 2),
         "tokens": metrics,
-        "skill_read_command_observed": observed if side == "treatment" else None,
+        "skill_read_command_observed": observed,
+        "project_skill_present": project_skill_present,
+        "resolved_model_in_events": resolved_model,
+        "stream_errors": any(e.get("type") in ("turn.failed", "error") for e in events),
         "artifacts": str(artifacts),
     }
 
@@ -254,6 +324,9 @@ def main() -> int:
     parser.add_argument("--state-dir", type=Path,
                         default=Path.home() / ".local/share/effectual-change-eval")
     parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument("--order", default="random",
+                        choices=("control-first", "treatment-first", "random"),
+                        help="Execution order; random is the default and is recorded")
     parser.add_argument("--skip-grade", action="store_true",
                         help="Do not execute agent-written code; grade as NOT VERIFIED")
     parser.add_argument("--post-issue", action="store_true",
@@ -275,8 +348,13 @@ def main() -> int:
     out = state / "runs" / (stamp + "-" + secrets.token_hex(4))
     private_dir(out)
     checkouts_map = checkouts(out)
-    report = {"base_sha": BASE, "model": args.model, "created": stamp, "trials": {}}
-    for side in ("control", "treatment"):
+    selected_order = trial_order(args.order)
+    report = {
+        "base_sha": BASE, "model": args.model, "created": stamp,
+        "order_requested": args.order, "execution_order": list(selected_order),
+        "trials": {},
+    }
+    for side in selected_order:
         result = trial(side, checkouts_map[side], out,
                        codex_home, args.model, args.timeout)
         result["grade"] = (None if args.skip_grade
@@ -290,7 +368,8 @@ def main() -> int:
     print("\n" + summary + "\nRun artifacts: " + str(out), flush=True)
     success = all(
         x["return_code"] == 0 and x["completed"] and not x["timed_out"]
-        and x["base_preserved"] for x in report["trials"].values()
+        and x["base_preserved"] and not x["stream_errors"]
+        for x in report["trials"].values()
     )
     # A failed *candidate* is a valid experiment result. A failed *grader* is not.
     graded = args.skip_grade or all(
