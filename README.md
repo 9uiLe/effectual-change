@@ -51,14 +51,6 @@ Effectual Change は、エフェクチュエーションの5原則に着想を�
 
 [変更意思決定記録テンプレート](templates/change-decision.md) に対象タスクを当てはめ、現状・未知・変更範囲を記録します。AIへの基本的な方針には [エージェント向け運用ガイド](docs/agent-playbook.md) を利用できます。
 
-### ユースケース
-
-| 事例 | 主な不確実性 |
-| --- | --- |
-| [既存画面への機能追加](examples/feature-addition.md) | 既存UI・状態管理・APIとの整合 |
-| [スクロール性能改善](examples/scroll-performance.md) | 原因の切り分け、計測、視覚的な回帰 |
-| [属性別オンボーディング](examples/conditional-onboarding.md) | 既存表示条件、属性定義、表示履歴 |
-| [KMPへの画面移行](examples/kmp-migration.md) | 共有範囲、プラットフォーム固有処理、段階的移行 |
 
 ## 大切な区別
 
