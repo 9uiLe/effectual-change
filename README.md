@@ -78,7 +78,8 @@ find "$HOME/.local/share/effectual-change/skills/effectual-change" -type f
 
 ~~~bash
 # Safe Skill symlink installation
-set -eu
+(
+  set -eu
 
 skill_source="$HOME/.local/share/effectual-change/skills/effectual-change"
 claude_target="$HOME/.claude/skills/effectual-change"
@@ -101,6 +102,7 @@ done
 
 ln -s "$skill_source" "$claude_target"
 ln -s "$skill_source" "$codex_target"
+)
 ~~~
 
 既存の同名Skillを上書きしないでください。特定のプロジェクトだけに適用する場合は、そのプロジェクトの `.claude/skills/` と `.agents/skills/` に配置します。Gitによる更新時は `git fetch` の後に差分を確認し、承認したコミットへ切り替えてください。アンインストール時は該当するリンクのみ削除し、元のリポジトリを誤って削除しないでください。
