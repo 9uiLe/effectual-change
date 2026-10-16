@@ -154,6 +154,10 @@ python3 -m unittest discover -s tests -v
 - [Effectuation.org: The Five Principles of Effectuation](https://effectuation.org/the-five-principles-of-effectuation-detail)
 - [Effectuation.org: Effectuation 101](https://effectuation.org/effectuation-101)
 
+## 開発・問い合わせについて
+
+このプロジェクトは**単独メンテナーによる開発**を想定しており、外部からのIssue・Pull Requestによる変更提案は受け付けていません。公開コードの閲覧・利用・フォークはMITライセンスに従って行えます。GitHub側ではIssueとPull Requestの作成範囲をCollaborators onlyに制限します。
+
 ## ライセンス
 
-未設定。公開前にライセンスを決定し、`LICENSE`を設置する必要があります。
+[MIT License](LICENSE) — Copyright (c) 2026 9uiLe.
