@@ -292,9 +292,23 @@ def grade(checkout: Path, side: str, out: Path) -> dict:
             "total": data.get("total"), "grade_file": str(stdout)}
 
 
+def exposure_evidence(report: dict) -> bool:
+    """Detect explicit treatment use and obvious control contamination.
+
+    This is a trace-based eligibility check, not proof of every hidden Skill.
+    """
+    a, b = report["trials"]["control"], report["trials"]["treatment"]
+    return (
+        not a["project_skill_present"]
+        and not a["skill_read_command_observed"]
+        and b["project_skill_present"]
+        and b["skill_read_command_observed"]
+    )
+
+
 def markdown(report: dict) -> str:
     rows = []
-    for side in ("control", "treatment"):
+    for side in report["execution_order"]:
         item = report["trials"][side]
         scored = item["grade"]
         value = (f"{scored['passed']}/{scored['total']}"
@@ -304,17 +318,35 @@ def markdown(report: dict) -> str:
             f"| {side} | {value} | {item['return_code']} | "
             f"{item['seconds']} | {item['tokens']['input_tokens'] or 'n/a'} |"
         )
+    resolved = {
+        report["trials"][side].get("resolved_model_in_events")
+        for side in ("control", "treatment")
+    }
+    model_evidence = (
+        next(iter(resolved)) if len(resolved) == 1 and None not in resolved
+        else "not reported consistently in JSONL (unverified)"
+    )
+    order = " -> ".join(report["execution_order"])
+    control = report["trials"]["control"]
+    treatment = report["trials"]["treatment"]
     return (
         "## Phase 2 local Codex comparison\n\n"
-        f"Base: {BASE}. Requested model: {report['model'] or 'CLI default (unverified)'}.\n\n"
+        f"Base: {BASE}. Requested model: {report['model'] or 'CLI default (unverified)'}.\n"
+        f"Execution order: {order} (requested: {report['order_requested']}).\n"
+        f"Resolved model observed in events: {model_evidence}.\n\n"
         "| Trial | Grader | Codex exit | Seconds | Input tokens |\n"
-        "| --- | --- | --- | --- | --- |\n" +
-        "\n".join(rows) +
-        "\n\nA single pair is INCONCLUSIVE evidence about Skill efficacy, "
-        "even when both candidates pass. Treatment Skill entry read observed "
-        f"in command records: {report['trials']['treatment']['skill_read_command_observed']} "
-        "(absence is not proof of non-invocation).\n\n"
-        "Raw agent logs and diffs are stored locally, not posted to GitHub.\n"
+        "| --- | --- | --- | --- | --- |\n"
+        + "\n".join(rows)
+        + "\n\nA single pair is INCONCLUSIVE evidence about Skill efficacy, "
+        "even when both candidates pass.\n\n"
+        f"Control project Skill present: {control['project_skill_present']}; "
+        f"Effectual Change read command observed: {control['skill_read_command_observed']}.\n"
+        f"Treatment project Skill present: {treatment['project_skill_present']}; "
+        f"Effectual Change read command observed: {treatment['skill_read_command_observed']}.\n"
+        f"Exposure evidence sufficient for this pilot: {exposure_evidence(report)}. "
+        "No command read does not rule out hidden system/admin Skills; a present "
+        "project Skill is not proof of use.\n\n"
+        "Raw agent logs, credentials, and diffs are stored locally, not posted to GitHub.\n"
     )
 
 
@@ -378,13 +410,15 @@ def main() -> int:
         and x["grade"].get("total") == 8
         for x in report["trials"].values()
     )
+    eligible = success and graded and exposure_evidence(report)
     if args.post_issue:
-        if not success or not graded or args.skip_grade:
-            print("Skipping Issue comment: A/B comparison is incomplete or ungraded.")
+        if not eligible or args.skip_grade:
+            print("Skipping Issue comment: comparison incomplete, ungraded, "
+                  "or Skill exposure not confirmed by available evidence.")
         else:
             run(["gh", "issue", "comment", "13", "--repo", "9uiLe/effectual-change",
                  "--body-file", str(out / "report.md")])
-    return 0 if success and graded else 1
+    return 0 if eligible else 1
 
 
 if __name__ == "__main__":
