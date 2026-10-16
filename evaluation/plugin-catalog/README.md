@@ -4,6 +4,31 @@
 
 [Issue #13](https://github.com/9uiLe/effectual-change/issues/13) で実験の状況を管理します。
 
+## 1回のコマンドで自動実行する（推奨）
+
+[run.py](run.py) は、ベースコミットのClone → Skillなし／ありの別ワークスペース作成 → **独立したCodex CLIセッションで2回実装** → Docker内での同一採点 → JSONLの利用量集計 → Markdown/JSON報告、までを一括実行する。手動で2つのスレッドを作らなくてよい。実装結果はGitHubへpushもmergeもしない。
+
+必要なツール：**Codex CLI、Git、Python 3.10以上、Docker**（採点器をDocker内で動かすため）。Dockerは起動しておく。GitHubへ結果を投稿する場合だけGitHub CLI（gh）の認証も必要。初回のDocker image buildでは公式Python imageとbash/jqを取得する。外部コンテナイメージのサプライチェーンリスクは残るので、信頼するDockerfileとimageを事前に確認し、厳格な環境ではベースイメージdigestを固定する。
+
+~~~bash
+# effectual-changeのPR #14の内容を含む作業ツリーで実行
+python3 evaluation/plugin-catalog/run.py --post-issue
+
+# 特定のCodexモデルで揃える場合（利用可能なモデル名に変更）
+python3 evaluation/plugin-catalog/run.py --model YOUR_CODEX_MODEL --post-issue
+~~~
+
+**初回のみ：** Eval専用のCodex認証がなければ、スクリプトがログインコマンドを表示して停止する。そのコマンドで1回ログイン後に同じ実行コマンドを再試行する。既存の~/.codex設定や認証ファイルはコピー・削除しない。認証は各runから独立した私有のCODEX_HOMEに保持し、試行中のHOMEはControl/Treatmentで分離する。
+
+- Codexの非対話実行は、ユーザー設定を無視するオプション、workspace-writeサンドボックス、シェルのネットワーク遮断を使用する。ユーザー共通SkillをControlへ読み込ませないため、各試行に別のHOMEを用意する。Controlには追加Skillを配置せず、Treatmentにだけ配布Skillをコピーする。ただし**システム・管理者レベルのSkillまで完全に無効化できたことは自動的には保証できない**。ログで混入を確認した場合、そのペアを除外する。
+- モデルを固定せずに実行した場合、Codex CLIが選んだモデルを二条件とも使うが、**具体的なモデルの一致は未確認**として報告する。比較を厳密にする際は--modelを指定する。
+- CodexのJSONLと差分、失敗ログはローカルの~/.local/share/effectual-change-eval/runs/以下に保存する。--post-issueを使った場合、**機密情報を含む生ログ・コード差分は送らず、集計サマリーだけ**Issue #13に投稿する。
+- 採点器はAgentが変更したBashを実行するため、ネットワークなし・readonlyマウント・非root・CPU/メモリ制限のDockerコンテナ内でのみ自動実行する。Dockerを使えない場合は--skip-gradeを指定できるが、その結果の採点はNOT VERIFIEDとして扱う。
+- 両条件を独立した新規セッションとして実行するが、実行順序は現状Control→Treatmentに固定。キャッシュ、Toolのバージョン、モデルの変更、推論時のランダム性など交絡要因は残る。最初の1ペアは**パイロット実験**であり、Skillの有効性は結論しない。
+- このランナーは作成直後であり、**ローカルPC上でのフル実行は未検証**。初回はレポート・Skillの実読込・環境分離を確認し、異常時は結果を公開しないで修正する。
+
+公式仕様：[Codex非対話実行](https://learn.chatgpt.com/docs/non-interactive-mode)、[CLIフラグ](https://learn.chatgpt.com/docs/developer-commands)、[Skillsの配置](https://learn.chatgpt.com/docs/build-skills)、[CODEX_HOME](https://learn.chatgpt.com/docs/config-file/environment-variables)。
+
 ## 対象と固定条件
 
 - 対象: [9uiLe/plugins](https://github.com/9uiLe/plugins)
