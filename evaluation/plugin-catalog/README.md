@@ -22,16 +22,23 @@ python3 evaluation/plugin-catalog/run.py --post-issue
 
 # 特定のCodexモデルで揃える場合（利用可能なモデル名に変更）
 python3 evaluation/plugin-catalog/run.py --model YOUR_CODEX_MODEL --post-issue
+
+# Controlから先に実行する（既定の--order randomとは異なる）
+python3 evaluation/plugin-catalog/run.py --model YOUR_CODEX_MODEL --order control-first
+
+# Treatmentから先に実行する
+python3 evaluation/plugin-catalog/run.py --model YOUR_CODEX_MODEL --order treatment-first
 ~~~
 
-**初回のみ：** Eval専用のCodex認証がなければ、スクリプトがログインコマンドを表示して停止する。そのコマンドで1回ログイン後に同じ実行コマンドを再試行する。既存の~/.codex設定や認証ファイルはコピー・削除しない。認証は各runから独立した私有のCODEX_HOMEに保持し、試行中のHOMEはControl/Treatmentで分離する。
+**初回のみ：** Eval専用のCodex認証がなければ、スクリプトがログインコマンドを表示して停止する。そのコマンドで1回ログイン後に同じ実行コマンドを再試行する。既存の~/.codex設定や認証ファイルはコピー・削除しない。認証は**再実行でも使う専用の**CODEX_HOMEに保持し、試行中のHOMEはControl/Treatmentで分離する。CodexがそのCODEX_HOMEに自動生成した無関係なSkillが増えても再実行できるが、`effectual-change`がグローバルなSkillとして存在すれば比較を中止する。
 
 - Codexの非対話実行は、ユーザー設定を無視するオプション、workspace-writeサンドボックス、シェルのネットワーク遮断を使用する。ユーザー共通SkillをControlへ読み込ませないため、各試行に別のHOMEを用意する。Controlには追加Skillを配置せず、Treatmentにだけ配布Skillをコピーする。ただし**システム・管理者レベルのSkillまで完全に無効化できたことは自動的には保証できない**。ログで混入を確認した場合、そのペアを除外する。
-- モデルを固定せずに実行した場合、Codex CLIが選んだモデルを二条件とも使うが、**具体的なモデルの一致は未確認**として報告する。比較を厳密にする際は--modelを指定する。
+- モデルを固定せずに実行した場合、CLIの既定モデルに依存するため**モデルの同一性は未確認**として報告する。比較を厳密にする際は`--model`を指定する。CLI JSONLに実際のモデル名が含まれる場合はその値も記録するが、報告されなければ`not reported ... (unverified)`とする。モデル名の指定が受理されただけでは実際のモデルスナップショットの一致を保証しない。
 - CodexのJSONLと差分、失敗ログはローカルの~/.local/share/effectual-change-eval/runs/以下に保存する。--post-issueを使った場合、**機密情報を含む生ログ・コード差分は送らず、集計サマリーだけ**Issue #13に投稿する。
 - 採点器はAgentが変更したBashを実行するため、ネットワークなし・readonlyマウント・非root・CPU/メモリ制限のDockerコンテナ内でのみ自動実行する。Dockerを使えない場合は--skip-gradeを指定できるが、その結果の採点はNOT VERIFIEDとして扱う。
-- 両条件を独立した新規セッションとして実行するが、実行順序は現状Control→Treatmentに固定。キャッシュ、Toolのバージョン、モデルの変更、推論時のランダム性など交絡要因は残る。最初の1ペアは**パイロット実験**であり、Skillの有効性は結論しない。
-- このランナーは作成直後であり、**ローカルPC上でのフル実行は未検証**。初回はレポート・Skillの実読込・環境分離を確認し、異常時は結果を公開しないで修正する。
+- 両条件を独立した新規セッションとして実行する。実行順序は既定で`--order random`、`control-first`／`treatment-first`も指定でき、**実際の順序をレポートに記録**する。キャッシュ、Toolのバージョン、モデルの変更、推論時のランダム性など交絡要因は残る。1ペアだけでSkillの有効性は結論しない。
+- 各試行の直前にControlにはプロジェクトSkillが存在せず、Treatmentにのみ存在することを検査する。コマンド履歴からControlでのEffectual Change読み込みが見つかったり、Treatmentの読み込み証拠が得られなかったりした場合、GitHub Issueへの結果投稿は行わない。ただし**コマンドに記録がないことは管理者レベルでのSkill不在を証明しない**。
+- 旧ランナーはローカルPCで実行され、[最初の自動パイロット](https://github.com/9uiLe/effectual-change/issues/13#issuecomment-6209787616)と[順序を逆転させた追加2ペア](https://github.com/9uiLe/effectual-change/issues/13#issuecomment-6210116926)が報告済み。今回の再実行条件・順序選択・検証ログの変更は**追加修正として実機未再検証**。まず`test_run.py`と再試行を確認し、異常時は新たな結果を公開しない。
 
 公式仕様：[Codex非対話実行](https://learn.chatgpt.com/docs/non-interactive-mode)、[CLIフラグ](https://learn.chatgpt.com/docs/developer-commands)、[Skillsの配置](https://learn.chatgpt.com/docs/build-skills)、[CODEX_HOME](https://learn.chatgpt.com/docs/config-file/environment-variables)。
 
@@ -119,7 +126,6 @@ bash /tmp/effectual-plugins-treatment/scripts/tests/verify-plugin-catalog.test.s
 - 対象の選定とベースコミットの固定：完了
 - 隔離fixtureでの元の不具合の再現：完了
 - 独立採点器の追加：PRによる提案
-- **A/BのAgent実行：未実施**
-- **Skillによる性能・品質の改善：未検証**
-
-この環境には`claude`と`codex`のCLIがないため、比較結果を作りません。実行できたデータが得られた時点で、[Issue #13](https://github.com/9uiLe/effectual-change/issues/13)へ根拠とともに記録します。
+- **A/BのAgent実行：ローカルCodex CLIで3ペア（最初の1ペア＋同一モデルの追加2ペア）を実施。独立採点はいずれも8/8で同点**（[Issue #13](https://github.com/9uiLe/effectual-change/issues/13)に原始データを除く概要を記録）。
+- **Skillによる性能・品質の改善：未検証／INCONCLUSIVE**。効率差は複数要因の影響があり、単発の有効性・無効性を断定しない。
+- **修正したランナーのローカル実機での動作：未再検証**。特に無関係なSkillがあるCODEX_HOMEでの2回目の実行と両実行順序の確認を要する。
