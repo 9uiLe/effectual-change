@@ -8,6 +8,12 @@
 
 [run.py](run.py) は、ベースコミットのClone → Skillなし／ありの別ワークスペース作成 → **独立したCodex CLIセッションで2回実装** → Docker内での同一採点 → JSONLの利用量集計 → Markdown/JSON報告、までを一括実行する。手動で2つのスレッドを作らなくてよい。実装結果はGitHubへpushもmergeもしない。
 
+ランナーのローカル単体テストは外部サービスを呼び出さずに実行できる。
+
+~~~bash
+python3 -m unittest discover -s evaluation/plugin-catalog -p 'test_*.py' -v
+~~~
+
 必要なツール：**Codex CLI、Git、Python 3.10以上、Docker**（採点器をDocker内で動かすため）。Dockerは起動しておく。GitHubへ結果を投稿する場合だけGitHub CLI（gh）の認証も必要。初回のDocker image buildでは公式Python imageとbash/jqを取得する。外部コンテナイメージのサプライチェーンリスクは残るので、信頼するDockerfileとimageを事前に確認し、厳格な環境ではベースイメージdigestを固定する。
 
 ~~~bash
