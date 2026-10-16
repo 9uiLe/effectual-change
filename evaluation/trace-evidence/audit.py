@@ -109,7 +109,7 @@ def audit(events: Iterable[dict], show_text: bool = False) -> dict:
         if is_verification:
             verification_counts[outcome] += 1
         entry = {
-            "item_id": item_id,
+            "item_id_sha256": digest(item_id),
             "first_event": record["first_event"],
             "last_event": record["last_event"],
             "command_sha256": digest(record["command"]),
@@ -118,6 +118,7 @@ def audit(events: Iterable[dict], show_text: bool = False) -> dict:
             "verification_hint": is_verification,
         }
         if show_text:
+            entry["item_id"] = item_id
             entry["command"] = record["command"]
         summaries.append(entry)
 
