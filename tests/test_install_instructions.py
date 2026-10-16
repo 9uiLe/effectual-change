@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALL_SNIPPET = re.compile(
-    r"~~~bash\n(# Safe Skill symlink installation\n.*?)\n~~~",
+    r"<!-- safe-skill-symlink-install -->\n~~~bash\n(.*?)\n~~~",
     re.DOTALL,
 )
 SKILL_RELATIVE_PATH = "skills/effectual-change"
@@ -80,6 +80,26 @@ class SafeSymlinkInstallTests(unittest.TestCase):
                         (ROOT / SKILL_RELATIVE_PATH / relative).read_bytes(),
                         f"Missing or changed Skill resource: {target / relative}",
                     )
+
+    @unittest.skipUnless(shutil.which("zsh"), "zsh is required for interactive-shell coverage")
+    def test_installs_both_symlinks_in_interactive_zsh(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            source = create_skill_source(home)
+            result = subprocess.run(
+                ["zsh", "-f", "-i"],
+                input=get_install_script(),
+                env={**os.environ, "HOME": str(home), "ZDOTDIR": str(home)},
+                cwd=home,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotIn("command not found", result.stdout + result.stderr)
+            for target in skill_targets(home):
+                self.assertTrue(target.is_symlink())
+                self.assertEqual(target.resolve(), source.resolve())
 
     def test_project_local_copies_are_self_contained(self):
         """Both agents can receive only the Skill directory, without repo docs."""

@@ -47,7 +47,7 @@
 - **解釈：** Skillの意思決定改善・効率改善への**因果的寄与はINCONCLUSIVE**。完了時間・トークン数はモデル・実行順序・キャッシュ等の交絡を含む。単一課題で全ケース同点だったことは「有効」とも「無効」とも証明しない。
 - **評価の限界：** 採点器は有限の8ケースのみ。実際のモデル解決先、管理者レベルのSkill露出、他OSの動作の完全な一致は立証していない。採点器とAgent作業環境を分けたことだけで、外部実務にそのまま一般化しない。
 
-追加の実務観察は[Issue #3](https://github.com/9uiLe/effectual-change/issues/3)で管理する。[Issue #17](https://github.com/9uiLe/effectual-change/issues/17)（SpeakerDeckの本文なしスライド）も**実際にSkillありのCodexを実行済み**。初回のAgent実装は不正な空Transcriptを許容しており、独立レビューの負例テストで発見・修正した。Agentの最終回答に記載された修正後テスト実行はイベント記録で裏付けられなかった。修正後の17件・26件のテスト成功は**独立レビューの成果**であり、Agent自身のテスト成功として扱わない。単独試行のためSkillの因果的な効果はINCONCLUSIVE。製品側の[plugins #106](https://github.com/9uiLe/plugins/issues/106)は未解決で、修正差分はローカルのみ。
+追加の実務観察は[Issue #3](https://github.com/9uiLe/effectual-change/issues/3)で管理する。[Issue #17](https://github.com/9uiLe/effectual-change/issues/17)（SpeakerDeckの本文なしスライド）も**実際にSkillありのCodexを実行済み**。初回のAgent実装は不正な空Transcriptを許容しており、独立レビューの負例テストで発見・修正した。Agentの最終回答に記載された修正後テスト実行はイベント記録で裏付けられなかった。修正後の17件・26件のテスト成功は**独立レビューの成果**であり、Agent自身のテスト成功として扱わない。単独試行のためSkillの因果的な効果はINCONCLUSIVE。試行後、製品側の[plugins #106](https://github.com/9uiLe/plugins/issues/106)は別途作成された[plugins PR #127](https://github.com/9uiLe/plugins/pull/127)のマージで解決済み（Agent試行の差分そのものではない）。
 
 ## Codex実行記録と検証主張の照合（Issue #2 / #3）
 
@@ -55,8 +55,9 @@ Issue #17では、**Agentによる「テストを実行した」という主張�
 
 標準ライブラリのみの[JSONL監査ツール](../evaluation/trace-evidence/audit.py)は、Codex CLIの `codex exec --json` で保存したローカルのイベント記録から、実行コマンドの開始・完了、明示的な終了コード、テストらしいコマンド、最終回答の位置を抽出する。
 
+JSONLファイルは検証用の隔離環境で取得し、ローカルに保管してから監査します。
+
 ~~~bash
-# JSONLファイルは検証用の隔離環境で取得し、ローカルに保管
 python3 evaluation/trace-evidence/audit.py \
   --events "$EVENT_LOG" \
   --output "$PRIVATE_DIR/command-evidence.json"
