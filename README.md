@@ -159,7 +159,7 @@ python3 -m unittest discover -s tests -v
 
 ## 理論的背景と出典
 
-エフェクチュエーションは、起業家の意思決定についてSaras D. Sarasvathyが提唱した理論です。元の文脈では、手段、許容可能な損失、他者のコミットメント、偶然の活用、未来へのコントロールが重要です。本プロジェクトはその**独自の応用**です。
+エフェクチュエーションは、起業家の意思決定についてSaras D. Sarasvathyが提唱した理論です。元の文脈では、手段、許容可能な損失、他者のコミットメント、偶然の活用、未来へのコントロールが重要です。本プロジェクトはその**独自の応用**です。原義との対応・ずれ、適用しにくいケース、既存手法との違い（仮説）は[原義と適用範囲](docs/theory.md)に整理しています。
 
 - [Sarasvathy (2001), *Causation and Effectuation*, Academy of Management Review](https://doi.org/10.5465/amr.2001.4378020)
 - [Effectuation.org: The Five Principles of Effectuation](https://effectuation.org/the-five-principles-of-effectuation-detail)
