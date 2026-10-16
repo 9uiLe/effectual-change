@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import signal
 import shutil
 import subprocess
 import sys
@@ -119,14 +120,16 @@ def trial(side: str, checkout: Path, out: Path, codex_home: Path,
     ).open("wb") as stderr:
         proc = subprocess.Popen(
             command, stdin=subprocess.PIPE, stdout=events,
-            stderr=stderr, env=env, cwd=checkout,
+            stderr=stderr, env=env, cwd=checkout, start_new_session=True,
         )
         timed_out = False
         try:
             proc.communicate(prompt.encode("utf-8"), timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            proc.kill()
+            # Kill the agent's child process group too; otherwise tool processes
+            # can continue modifying the checkout after a trial times out.
+            os.killpg(proc.pid, signal.SIGKILL)
             proc.communicate()
     events = []
     for line in (artifacts / "events.jsonl").read_text(
