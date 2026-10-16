@@ -90,9 +90,7 @@ if [ ! -f "$skill_source/SKILL.md" ]; then
   exit 1
 fi
 
-mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
-
-# Preflight BOTH targets before writing EITHER link.
+# Preflight BOTH targets before creating directories or writing EITHER link.
 for target in "$claude_target" "$codex_target"; do
   if [ -e "$target" ] || [ -L "$target" ]; then
     printf 'Skill already exists; refusing to modify: %s\n' "$target" >&2
@@ -100,6 +98,7 @@ for target in "$claude_target" "$codex_target"; do
   fi
 done
 
+mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
 ln -s "$skill_source" "$claude_target"
 ln -s "$skill_source" "$codex_target"
 )
