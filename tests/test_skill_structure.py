@@ -1,7 +1,11 @@
 """Validate that the Agent Skill is self-contained and discoverable.
 
-This uses only Python's standard library; it does not install dependencies.
+Only Python's standard library is used. The metadata checker deliberately accepts
+a narrow, unquoted YAML subset (name and description as one-line plain scalars);
+it is NOT a general YAML parser. Also run the official skills-ref validator
+before a public release.
 """
+
 import re
 import unittest
 from pathlib import Path
@@ -10,26 +14,77 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "skills" / "effectual-change"
 SKILL_FILE = SKILL_DIR / "SKILL.md"
 LOCAL_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+FRONTMATTER = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
+# Restrict plain scalars to characters with unambiguous YAML string semantics.
+# In particular, reject flow collections ([...], {...}), anchors, tags, quotes,
+# colon-mappings, YAML comments, and folded/literal block scalars.
+PLAIN_DESCRIPTION = re.compile(r"[\w .,;!?()/\-、（）]+", re.UNICODE)
+
+
+def validate_frontmatter(markdown: str) -> dict[str, str]:
+    """Accept only the exact frontmatter subset used by this repository.
+
+    Requiring two plain scalar fields eliminates the false-positive case where
+    a line-based key/value split accepted syntactically invalid YAML.
+    """
+    match = FRONTMATTER.match(markdown)
+    if match is None:
+        raise ValueError("SKILL.md requires a YAML frontmatter block")
+
+    lines = match.group(1).splitlines()
+    if len(lines) != 2:
+        raise ValueError("Only 'name' and 'description' one-line fields are supported")
+    if not lines[0].startswith("name: ") or not lines[1].startswith("description: "):
+        raise ValueError("Expected 'name' followed by 'description' plain scalars")
+
+    name = lines[0][len("name: "):]
+    description = lines[1][len("description: "):]
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) or len(name) > 64:
+        raise ValueError("Invalid skill name")
+    if (
+        not description
+        or len(description) > 1024
+        or not description[0].isalnum()
+        or PLAIN_DESCRIPTION.fullmatch(description) is None
+        or description.lower() in {"true", "false", "null", "yes", "no", "on", "off"}
+    ):
+        raise ValueError("Description must be a nonempty, unquoted, single-line plain scalar")
+    if len(markdown.splitlines()) > 500:
+        raise ValueError("SKILL.md exceeds 500 lines")
+    return {"name": name, "description": description}
 
 
 class AgentSkillStructureTests(unittest.TestCase):
     def test_skill_frontmatter(self):
-        text = SKILL_FILE.read_text(encoding="utf-8")
-        match = re.match(r"\A---\r?\n(.*?)\r?\n---\r?\n", text, re.DOTALL)
-        self.assertIsNotNone(match, "SKILL.md requires YAML frontmatter")
-        fields = {}
-        for line in match.group(1).splitlines():
-            if not line.strip():
-                continue
-            key, separator, value = line.partition(":")
-            self.assertTrue(separator, f"Invalid frontmatter line: {line}")
-            fields[key.strip()] = value.strip().strip('"').strip("'")
-        self.assertEqual(fields.get("name"), SKILL_DIR.name)
-        self.assertRegex(fields["name"], r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-        self.assertLessEqual(len(fields["name"]), 64)
-        self.assertTrue(fields.get("description"), "description is required")
-        self.assertLessEqual(len(fields["description"]), 1024)
-        self.assertLessEqual(len(text.splitlines()), 500)
+        metadata = validate_frontmatter(SKILL_FILE.read_text(encoding="utf-8"))
+        self.assertEqual(metadata["name"], SKILL_DIR.name)
+
+    def test_invalid_frontmatter_is_rejected(self):
+        original = SKILL_FILE.read_text(encoding="utf-8")
+        match = FRONTMATTER.match(original)
+        self.assertIsNotNone(match)
+        body = original[match.end():]
+        invalid_headers = {
+            "invalid YAML flow sequence": "name: effectual-change\ndescription: [invalid, YAML",
+            "invalid YAML mapping": "name: effectual-change\ndescription: {invalid: YAML",
+            "embedded mapping": "name: effectual-change\ndescription: Invalid: YAML",
+            "unterminated quote": 'name: effectual-change\ndescription: "unterminated',
+            "block scalar": "name: effectual-change\ndescription: |",
+            "anchor": "name: effectual-change\ndescription: &ref text",
+            "comment": "name: effectual-change\ndescription: Text #comment",
+            "duplicate key": "name: effectual-change\ndescription: Valid text\ndescription: Duplicate",
+            "extra key": "name: effectual-change\ndescription: Valid text\nallowed-tools: Bash",
+            "missing key": "name: effectual-change",
+            "empty description": "name: effectual-change\ndescription: ",
+            "wrong key order": "description: Valid text\nname: effectual-change",
+            "invalid name": "name: Effectual Change\ndescription: Valid text",
+            "leading YAML indicator": "name: effectual-change\ndescription: - unsafe",
+            "tab character": "name: effectual-change\ndescription: Text\tbad",
+        }
+        for reason, header in invalid_headers.items():
+            with self.subTest(reason=reason):
+                with self.assertRaises(ValueError):
+                    validate_frontmatter(f"---\n{header}\n---\n{body}")
 
     def test_skill_has_no_executable_payload(self):
         self.assertFalse((SKILL_DIR / "scripts").exists())
