@@ -153,6 +153,10 @@ def trial(side: str, checkout: Path, out: Path, codex_home: Path,
         for item in [obj.get("item", {})]
         if isinstance(item, dict)
     )
+    head_after = run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        capture_output=True, text=True,
+    ).stdout.strip()
     with (artifacts / "diff.patch").open("wb") as output:
         subprocess.run(
             ["git", "-C", str(checkout), "--no-pager", "diff",
@@ -166,7 +170,8 @@ def trial(side: str, checkout: Path, out: Path, codex_home: Path,
     return {
         "condition": side, "return_code": proc.returncode,
         "completed": any(obj.get("type") == "turn.completed" for obj in events),
-        "timed_out": timed_out, "seconds": round(time.monotonic()-started, 2),
+        "timed_out": timed_out, "base_preserved": head_after == BASE,
+        "head_after": head_after, "seconds": round(time.monotonic()-started, 2),
         "tokens": metrics,
         "skill_read_command_observed": observed if side == "treatment" else None,
         "artifacts": str(artifacts),
@@ -281,6 +286,7 @@ def main() -> int:
         run(["gh", "issue", "comment", "13", "--repo", "9uiLe/effectual-change",
              "--body-file", str(out / "report.md")])
     success = all(x["return_code"] == 0 and x["completed"]
+                  and x["base_preserved"]
                   for x in report["trials"].values())
     graded = args.skip_grade or all(
         x["grade"]["return_code"] == 0 for x in report["trials"].values()
