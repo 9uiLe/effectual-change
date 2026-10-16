@@ -47,7 +47,27 @@
 - **解釈：** Skillの意思決定改善・効率改善への**因果的寄与はINCONCLUSIVE**。完了時間・トークン数はモデル・実行順序・キャッシュ等の交絡を含む。単一課題で全ケース同点だったことは「有効」とも「無効」とも証明しない。
 - **評価の限界：** 採点器は有限の8ケースのみ。実際のモデル解決先、管理者レベルのSkill露出、他OSの動作の完全な一致は立証していない。採点器とAgent作業環境を分けたことだけで、外部実務にそのまま一般化しない。
 
-追加の実務観察は[Issue #3](https://github.com/9uiLe/effectual-change/issues/3)で管理する。次の具体的な課題候補は[Issue #17](https://github.com/9uiLe/effectual-change/issues/17)（SpeakerDeckの本文なしスライドの扱い）。まだAgent実行前であり、実務での意思決定改善が実証されたわけではない。
+追加の実務観察は[Issue #3](https://github.com/9uiLe/effectual-change/issues/3)で管理する。[Issue #17](https://github.com/9uiLe/effectual-change/issues/17)（SpeakerDeckの本文なしスライド）も**実際にSkillありのCodexを実行済み**。初回のAgent実装は不正な空Transcriptを許容しており、独立レビューの負例テストで発見・修正した。Agentの最終回答に記載された修正後テスト実行はイベント記録で裏付けられなかった。修正後の17件・26件のテスト成功は**独立レビューの成果**であり、Agent自身のテスト成功として扱わない。単独試行のためSkillの因果的な効果はINCONCLUSIVE。製品側の[plugins #106](https://github.com/9uiLe/plugins/issues/106)は未解決で、修正差分はローカルのみ。
+
+## Codex実行記録と検証主張の照合（Issue #2 / #3）
+
+Issue #17では、**Agentによる「テストを実行した」という主張と、JSONLに記録された実行コマンドが一致しない**事象があった。現行Skillにも「実行していないテストを成功と言わない」という規則があるため、同じ注意書きを増やす前に**観察・独立検証を容易にする**。
+
+標準ライブラリのみの[JSONL監査ツール](../evaluation/trace-evidence/audit.py)は、Codex CLIの `codex exec --json` で保存したローカルのイベント記録から、実行コマンドの開始・完了、明示的な終了コード、テストらしいコマンド、最終回答の位置を抽出する。
+
+~~~bash
+# JSONLファイルは検証用の隔離環境で取得し、ローカルに保管
+python3 evaluation/trace-evidence/audit.py \
+  --events "$EVENT_LOG" \
+  --output "$PRIVATE_DIR/command-evidence.json"
+~~~
+
+- **根拠の強さ：** `item.completed`かつ`exit_code=0`のコマンドだけを「終了コード0で完了」と記録する。終了コード不明は`unknown`、開始のみは`incomplete`、非0は`failed`。**0でも目的の受け入れ条件・回帰の成功を自動的に保証しない**。
+- **誤報を見逃さない：** Agentの最終回答に挙げられたテストが本当に修正後に呼ばれたか、対象・終了コード・結果は一致するかを、レビュアーがローカルの生ログで照合する。コマンドに`pytest`等を含むかの検出は目安であり、実行の因果関係、テスト成功、その他ツール経由の検証を自動推論しない。
+- **負例を含める：** 変更要求で「許すケース」と「拒否を維持するケース」を区別し、回帰テスト・独立採点の双方で確認する。検証不足や追加レビュー修正を、Agent自身の成功として加点しない。
+- **秘匿性：** 通常出力はコマンド・最終回答の全文や生のイベントIDを含まずSHA-256の指紋だけを出す。`--show-text`はローカルでの詳細確認専用で、パス・認証情報・社外秘が含まれる可能性があるため公開コメント・CIアーティファクトへ載せない。通常出力も公開前に内容を確認する。
+
+このツールはSkillの機能や品質を評価した結果ではなく、**評価に使う実行証拠の観察手段**である。実務上の因果的効果は追加のSkillなし/あり比較が必要。
 
 ## 未解決の論点
 - 5原則を行動選択のための一貫した規則にどう落とすか。
@@ -59,4 +79,4 @@
 
 ## 次の作業
 
-まず[#6](https://github.com/9uiLe/effectual-change/issues/6)の公開インストールと実機発火の未検証事項を確認する。次に[#17](https://github.com/9uiLe/effectual-change/issues/17)など**実在する変更課題**で、[#2](https://github.com/9uiLe/effectual-change/issues/2)の探索停止・重要な未知の判断を観察し、[#3](https://github.com/9uiLe/effectual-change/issues/3)に結果を記録する。成功例だけでなく、適用しないほうがよかったケースも記録し、事実に基づいて必要最小限のSkill改善を検討する。
+[#6](https://github.com/9uiLe/effectual-change/issues/6)の初期公開配布は完了としてクローズ（Claude Code実機は未契約のため保留）。[#17](https://github.com/9uiLe/effectual-change/issues/17)の実務試行で見つかった「負例の見落とし」「実行していないテストの報告」を、[#2](https://github.com/9uiLe/effectual-change/issues/2)・[#3](https://github.com/9uiLe/effectual-change/issues/3)の次の評価軸とする。実務で繰り返し起きる判断上の問題かを追加観察し、必要なら[#12](https://github.com/9uiLe/effectual-change/issues/12)のpstack調査に基づく最小限の改善を比較検証する。実行していない課題や未マージの製品修正は完了扱いしない。
