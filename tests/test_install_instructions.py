@@ -104,6 +104,10 @@ class SafeSymlinkInstallTests(unittest.TestCase):
                         self.assertNotEqual(result.returncode, 0)
                         self.assertIn("Skill already exists", result.stderr)
                         self.assertFalse(other.exists() or other.is_symlink())
+                        self.assertFalse(
+                            other.parent.exists(),
+                            "A collision must not create the other agent's skill directory",
+                        )
                         self.assertFalse((source / "effectual-change").exists())
                         if collision == "directory":
                             self.assertEqual(
