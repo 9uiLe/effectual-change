@@ -64,7 +64,7 @@ Claude Code と Codex で共有できる **Agent Skills形式のSkill** を提�
 
 ### セキュリティ重視の導入（Git）
 
-外部のnpm CLIを実行せず、内容を確認したGitコミットから導入する例です（macOS / Linux）。`REVIEWED_COMMIT_SHA`は実際に監査したコミットSHAに置き換えてください。**公開前のPrivateリポジトリではGitHubへのアクセス権が必要**です。
+外部のnpm CLIを実行せず、内容を確認したGitコミットから導入する例です（macOS / Linux）。`REVIEWED_COMMIT_SHA`は実際に監査したコミットSHAに置き換えてください。リポジトリはPublicなので、通常のHTTPS読み取りに特別なGitHub認証は不要です。
 
 ~~~bash
 git clone https://github.com/9uiLe/effectual-change.git "$HOME/.local/share/effectual-change"
@@ -130,6 +130,10 @@ Python標準ライブラリのみで、Skillのfrontmatter・参照ファイル�
 ~~~bash
 python3 -m unittest discover -s tests -v
 ~~~
+
+このテストでは、READMEの**実際のインストール用シンボリックリンク手順**を隔離した一時HOMEで実行し、`skills/effectual-change/`内の全参照資料がClaude Code (`.claude/skills/`) とCodex (`.agents/skills/`) の両方から読めることを確認します。また、実際のSkillディレクトリだけを各プロジェクトへコピーした場合の同一性・Markdown相対リンクも検査します。GitHub Actionsの`validate`ジョブでも自動実行します（OSはUbuntu）。
+
+**別途実機確認が必要な範囲：** Public GitHubからのClone、Claude CodeとCodexによる実際のSkill発見・明示起動・自動起動、外部`skills` CLIの導入結果、Windows上での配置。CIのファイル検査が成功しても、エージェントのSkill起動や意思決定改善が確認できたことにはなりません。結果は[Issue #6](https://github.com/9uiLe/effectual-change/issues/6)で追跡します。
 
 **検証できる範囲：** 限定的なfrontmatter文法、ファイル構造、リンクの静的整合性、および隔離環境でのリンク競合防止。汎用YAML仕様への準拠は保証しないため、公開前には[Agent Skills公式の検証方法](https://agentskills.io/specification#validation)（例：`skills-ref validate skills/effectual-change`）との照合も行ってください。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
 
