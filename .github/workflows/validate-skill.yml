@@ -16,3 +16,5 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Validate self-contained skill package
         run: python3 -m unittest discover -s tests -v
+      - name: Validate Phase 2 evaluation runner (offline)
+        run: python3 -m unittest discover -s evaluation/plugin-catalog -p 'test_*.py' -v
