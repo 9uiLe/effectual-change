@@ -6,6 +6,7 @@ network access, or user skill directories are touched.
 
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -41,8 +42,9 @@ def run_install(home: Path) -> subprocess.CompletedProcess[str]:
 
 def create_skill_source(home: Path) -> Path:
     source = home / ".local" / "share" / "effectual-change" / SKILL_RELATIVE_PATH
-    source.mkdir(parents=True)
-    (source / "SKILL.md").write_text("name: effectual-change\n", encoding="utf-8")
+    source.parent.mkdir(parents=True)
+    # Stage the *real* published Skill, not a synthetic one-file fixture.
+    shutil.copytree(ROOT / SKILL_RELATIVE_PATH, source)
     return source
 
 
@@ -66,6 +68,51 @@ class SafeSymlinkInstallTests(unittest.TestCase):
             for target in skill_targets(home):
                 self.assertTrue(target.is_symlink())
                 self.assertEqual(target.resolve(), source.resolve())
+                for relative in (
+                    "SKILL.md",
+                    "references/principles.md",
+                    "references/decision-loop.md",
+                    "references/agent-playbook.md",
+                    "assets/change-decision.md",
+                ):
+                    self.assertEqual(
+                        (target / relative).read_bytes(),
+                        (ROOT / SKILL_RELATIVE_PATH / relative).read_bytes(),
+                        f"Missing or changed Skill resource: {target / relative}",
+                    )
+
+    def test_project_local_copies_are_self_contained(self):
+        """Both agents can receive only the Skill directory, without repo docs."""
+        source = ROOT / SKILL_RELATIVE_PATH
+        expected = {
+            item.relative_to(source): item.read_bytes()
+            for item in source.rglob("*") if item.is_file()
+        }
+        self.assertGreaterEqual(len(expected), 5)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for agent in (".claude", ".agents"):
+                with self.subTest(agent=agent):
+                    target = root / agent / "skills" / "effectual-change"
+                    target.parent.mkdir(parents=True)
+                    shutil.copytree(source, target)
+                    actual = {
+                        item.relative_to(target): item.read_bytes()
+                        for item in target.rglob("*") if item.is_file()
+                    }
+                    self.assertEqual(actual, expected)
+                    for markdown in target.rglob("*.md"):
+                        links = re.findall(r"(?<!!)\[[^\]]+\]\(([^)]+)\)",
+                                           markdown.read_text(encoding="utf-8"))
+                        for raw in links:
+                            relative = raw.split("#", 1)[0].strip()
+                            if not relative or "://" in relative or relative.startswith("mailto:"):
+                                continue
+                            resolved = (markdown.parent / relative).resolve()
+                            self.assertTrue(resolved.is_relative_to(target.resolve()),
+                                            f"Reference escapes package: {raw}")
+                            self.assertTrue(resolved.is_file(),
+                                            f"Missing installed reference: {raw}")
 
     def test_rejects_missing_source_without_creating_links(self):
         with tempfile.TemporaryDirectory() as directory:
