@@ -72,11 +72,36 @@ git -C "$HOME/.local/share/effectual-change" checkout --detach REVIEWED_COMMIT_S
 
 # SKILL.md と参照資料を確認してから配置する
 find "$HOME/.local/share/effectual-change/skills/effectual-change" -type f
+~~~
 
-# この例はユーザー共通（全プロジェクト）への配置
+ユーザー共通（全プロジェクト）に導入する場合、**既存の同名Skillがあれば両方のリンク作成を中止**します。通常の `ln -s SOURCE DEST` は、`DEST` が既存ディレクトリの場合、その中にリンクを作るため、事前に両方の配置先を検査します。壊れたシンボリックリンクも重複として扱います。
+
+~~~bash
+# Safe Skill symlink installation
+(
+  set -eu
+
+skill_source="$HOME/.local/share/effectual-change/skills/effectual-change"
+claude_target="$HOME/.claude/skills/effectual-change"
+codex_target="$HOME/.agents/skills/effectual-change"
+
+if [ ! -f "$skill_source/SKILL.md" ]; then
+  printf 'Skill not found: %s\n' "$skill_source" >&2
+  exit 1
+fi
+
+# Preflight BOTH targets before creating directories or writing EITHER link.
+for target in "$claude_target" "$codex_target"; do
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf 'Skill already exists; refusing to modify: %s\n' "$target" >&2
+    exit 1
+  fi
+done
+
 mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
-ln -s "$HOME/.local/share/effectual-change/skills/effectual-change" "$HOME/.claude/skills/effectual-change"
-ln -s "$HOME/.local/share/effectual-change/skills/effectual-change" "$HOME/.agents/skills/effectual-change"
+ln -s "$skill_source" "$claude_target"
+ln -s "$skill_source" "$codex_target"
+)
 ~~~
 
 既存の同名Skillを上書きしないでください。特定のプロジェクトだけに適用する場合は、そのプロジェクトの `.claude/skills/` と `.agents/skills/` に配置します。Gitによる更新時は `git fetch` の後に差分を確認し、承認したコミットへ切り替えてください。アンインストール時は該当するリンクのみ削除し、元のリポジトリを誤って削除しないでください。
@@ -100,13 +125,13 @@ pnpm dlx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectu
 
 ### Skillの検証
 
-Python標準ライブラリのみでSkillのfrontmatter・参照ファイル・自己完結性を検査できます。
+Python標準ライブラリのみで、Skillのfrontmatter・参照ファイル・自己完結性と、手動インストール時の既存Skillとの衝突防止を検査できます。frontmatterは汎用YAMLパーサーではなく、`name`と`description`をそれぞれ単一行・引用符なしの文字列に限定した形式として検証します。将来frontmatterの記法を拡張する場合はテストも更新してください。
 
 ~~~bash
 python3 -m unittest discover -s tests -v
 ~~~
 
-**検証できる範囲：** ファイル構造とリンクの静的整合性。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
+**検証できる範囲：** 限定的なfrontmatter文法、ファイル構造、リンクの静的整合性、および隔離環境でのリンク競合防止。汎用YAML仕様への準拠は保証しないため、公開前には[Agent Skills公式の検証方法](https://agentskills.io/specification#validation)（例：`skills-ref validate skills/effectual-change`）との照合も行ってください。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
 
 
 ## 大切な区別
