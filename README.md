@@ -66,18 +66,19 @@ Claude Code と Codex で共有できる **Agent Skills形式のSkill** を提�
 
 外部のnpm CLIを実行せず、内容を確認したGitコミットから導入する例です（macOS / Linux）。`REVIEWED_COMMIT_SHA`は実際に監査したコミットSHAに置き換えてください。リポジトリはPublicなので、通常のHTTPS読み取りに特別なGitHub認証は不要です。
 
+配置前に `SKILL.md` と参照資料を確認してください。
+
 ~~~bash
 git clone https://github.com/9uiLe/effectual-change.git "$HOME/.local/share/effectual-change"
 git -C "$HOME/.local/share/effectual-change" checkout --detach REVIEWED_COMMIT_SHA
 
-# SKILL.md と参照資料を確認してから配置する
 find "$HOME/.local/share/effectual-change/skills/effectual-change" -type f
 ~~~
 
 ユーザー共通（全プロジェクト）に導入する場合、**既存の同名Skillがあれば両方のリンク作成を中止**します。通常の `ln -s SOURCE DEST` は、`DEST` が既存ディレクトリの場合、その中にリンクを作るため、事前に両方の配置先を検査します。壊れたシンボリックリンクも重複として扱います。
 
+<!-- safe-skill-symlink-install -->
 ~~~bash
-# Safe Skill symlink installation
 (
   set -eu
 
@@ -90,7 +91,6 @@ if [ ! -f "$skill_source/SKILL.md" ]; then
   exit 1
 fi
 
-# Preflight BOTH targets before creating directories or writing EITHER link.
 for target in "$claude_target" "$codex_target"; do
   if [ -e "$target" ] || [ -L "$target" ]; then
     printf 'Skill already exists; refusing to modify: %s\n' "$target" >&2
@@ -110,14 +110,21 @@ ln -s "$skill_source" "$codex_target"
 
 [Vercel skills CLI](https://github.com/vercel-labs/skills) のインストール機能も利用できます。以下のコマンドは**外部CLIと依存コードを実行する**ため、組織のセキュリティポリシーに合わせてCLIの提供元・バージョン・依存を確認してください。未確認の最新版を無条件に実行せず、監査済みバージョンを明示してください。
 
+監査したCLIのバージョン番号に置き換えてください。
+
 ~~~bash
-# 監査したCLIのバージョン番号に置き換えてください
 SKILLS_CLI_VERSION=REVIEWED_CLI_VERSION
+~~~
 
-# npm
+npmの場合：
+
+~~~bash
 npx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
+~~~
 
-# pnpm
+pnpmの場合：
+
+~~~bash
 pnpm dlx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
 ~~~
 
