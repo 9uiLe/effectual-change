@@ -124,13 +124,13 @@ pnpm dlx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectu
 
 ### Skillの検証
 
-Python標準ライブラリのみでSkillのfrontmatter・参照ファイル・自己完結性を検査できます。
+Python標準ライブラリのみで、Skillのfrontmatter・参照ファイル・自己完結性と、手動インストール時の既存Skillとの衝突防止を検査できます。frontmatterは汎用YAMLパーサーではなく、`name`と`description`をそれぞれ単一行・引用符なしの文字列に限定した形式として検証します。将来frontmatterの記法を拡張する場合はテストも更新してください。
 
 ~~~bash
 python3 -m unittest discover -s tests -v
 ~~~
 
-**検証できる範囲：** ファイル構造とリンクの静的整合性。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
+**検証できる範囲：** 限定的なfrontmatter文法、ファイル構造、リンクの静的整合性、および隔離環境でのリンク競合防止。汎用YAML仕様への準拠は保証しないため、公開前には[Agent Skills公式の検証方法](https://agentskills.io/specification#validation)（例：`skills-ref validate skills/effectual-change`）との照合も行ってください。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
 
 
 ## 大切な区別
