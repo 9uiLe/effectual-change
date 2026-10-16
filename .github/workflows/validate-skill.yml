@@ -22,3 +22,5 @@ jobs:
         run: python3 -m unittest discover -s evaluation/trace-evidence -p 'test_*.py' -v
       - name: Validate scope-guard grader runner (offline)
         run: python3 -m unittest discover -s evaluation/scope-guard -p 'test_*.py' -v
+      - name: Validate hamio recovery grader runner (offline)
+        run: python3 -m unittest discover -s evaluation/hamio-recover -p 'test_*.py' -v
