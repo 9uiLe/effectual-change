@@ -159,6 +159,8 @@ python3 -m unittest discover -s tests -v
 
 実在するscope-guard不具合を対象にした[独立DevinセッションのSkillなし／あり比較](docs/scope-guard-devin-comparison.md)では、開始条件・実行証拠・固定テストによる採点と限界を記録しています。
 
+より大きな[hamio Recording復旧CLIの独立比較](docs/hamio-recover-devin-comparison.md)では、両条件が固定の機能・回帰検査を満たした一方、追加テスト込みの補助検査には未解決のTTY timeoutの差がありました。一般的な有効性の結論はINCONCLUSIVEです。
+
 ## 理論的背景と出典
 
 エフェクチュエーションは、起業家の意思決定についてSaras D. Sarasvathyが提唱した理論です。元の文脈では、手段、許容可能な損失、他者のコミットメント、偶然の活用、未来へのコントロールが重要です。本プロジェクトはその**独自の応用**です。原義との対応・ずれ、適用しにくいケース、既存手法との違い（仮説）は[原義と適用範囲](docs/theory.md)に整理しています。

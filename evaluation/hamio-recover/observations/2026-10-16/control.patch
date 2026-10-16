@@ -1,0 +1,1209 @@
+diff --git a/README.md b/README.md
+index c0a3613..9b10613 100644
+--- a/README.md
++++ b/README.md
+@@ -16,10 +16,13 @@ macOS arm64 と Linux x64 / arm64（glibc）向けの単一実行ファイルを
+ sh examples/presentation-live.sh ./dist/hamio succeeded
+ sh examples/presentation-live.sh ./dist/hamio succeeded --record run.ndjson
+ ./dist/hamio presentation report --input run.ndjson --output run.html
++./dist/hamio presentation recover --input run.ndjson --output recovered.ndjson
+ ```
+ 
+ `static` は State、`live` は Event 列を受け取ります。人向け Terminal 表示は stderr、機械向け応答は stdout。Recording の完結性、Run の業務結果、hamio の処理結果は独立しています。[Presentation API](docs/presentation-api.md)と[Recording 形式](docs/presentation-recording.md)が公開契約です。
+ 
++`recover` は有効な header を持つ Recording の受理済み Event prefix を、新しい Recording へ救出します。元ファイルや既存出力は変更せず、partial / invalid 入力は partial のまま保存します。業務の再実行や追記再開は行いません。
++
+ ## Form interaction
+ 
+ `hamio form --definition examples/form.json` は対話または提供値から回答を取得します。Form は Presentation と別の Interaction capability で、schema と応答は `apiVersion: 1` を維持します。[Form 契約](docs/interaction-form.md)、[Shell](examples/form.sh)・[Python](examples/form.py) の例を参照してください。
+diff --git a/docs/presentation-api.md b/docs/presentation-api.md
+index 1c886ee..a360d58 100644
+--- a/docs/presentation-api.md
++++ b/docs/presentation-api.md
+@@ -11,6 +11,7 @@ sh examples/presentation-live.sh hamio succeeded
+ sh examples/presentation-live.sh hamio failed
+ sh examples/presentation-live.sh hamio succeeded --record run.ndjson
+ hamio presentation report --input run.ndjson --output run.html
++hamio presentation recover --input run.ndjson --output recovered.ndjson
+ ```
+ 
+ `static` は `--input FILE|-`（省略時 stdin）から一つの UTF-8 JSON 文書を読み、既存 `decodeStatic` で検証する。文書は `{ "protocolVersion": 2, "state": { "run": ..., "items": [...] } }`。コピー可能な完全例は [`examples/presentation-static.json`](../examples/presentation-static.json) に置く。Run が未完でも静的 snapshot として表示でき、その場合の `runState` は `running` のままである。
+@@ -19,7 +20,9 @@ hamio presentation report --input run.ndjson --output run.html
+ 
+ `live --record FILE` は accepted Event を [Recording v1](presentation-recording.md) として、Terminal へ State を公開する前に追記する。既存 file は上書きしない。入力の未完了・不正・中断では、書込先が健全なら partial trailer を閉じる。Recording I/O が失敗した Event は新たに表示せず、`lastAcceptedSeq` と `lastRecordedSeq` を区別する。`report --input FILE --output FILE` は streaming replay の受理済み State を production HTML renderer に渡し、単一の self-contained HTML file を作る。出力 file は既存なら拒否し、途中の生成物を final path に公開しない。Report は complete / partial / invalid Recording のいずれからも生成でき、status と安全な issue location を Run Result と別枠で示す。
+ 
+-`presentation --help` は短い command 一覧を出す。`presentation capabilities` は現行 Presentation の発見入口で、`protocolVersion: 2`、製品版、`static` / `live`、Terminal と wire / state の上限を JSON で返す。Recording support、`recordingVersion: 1`、Recording 上限は additive field で返す。処理中に network、schema download、update check、telemetry、plugin lookup は行わない。
++`recover --input FILE --output FILE` は [Recording の復旧契約](presentation-recording.md#公開-cli-による救出)に従い、同じ Reader / PresentationSession が受理した完全な Event 行を、新しい canonical Recording v1 へ順番に保存する。両引数は必須のローカル file path で、`-`、重複・未知 option、値不足は `INVALID_ARGUMENT` / exit 2。入力を変更せず、既存出力や競合する作成を上書きしない。有効な header がなければ救出せず、既存 Protocol code / exit 2 で失敗する。有効な header のみなら0 Eventの partial を作れる。State から Event や終了結果を合成せず、業務の再実行・追記再開は行わない。
++
++`presentation --help` は短い command 一覧を出す。`presentation capabilities` は現行 Presentation の発見入口で、`protocolVersion: 2`、製品版、`static` / `live`、Terminal と wire / state の上限を JSON で返す。Recording support、`recordingVersion: 1`、Recording 上限と `recording.recover: true` は additive field で返す。処理中に network、schema download、update check、telemetry、plugin lookup は行わない。
+ 
+ ## 入出力と終了
+ 
+@@ -41,6 +44,13 @@ hamio presentation report --input run.ndjson --output run.html
+ 
+ Recording 付き live の正常応答には `recording: { recordingVersion, status, eventCount, lastRecordedSeq }`、失敗時には `recording.writeStatus` が付く。`writeStatus: "not_created"` は file 作成前の障害、`"partial"` は partial trailer の書込みと sync 成功、`"complete"` は complete trailer 後の Terminal / machine I/O 障害、`"unverified"` は Recording I/O 障害で file を再読込しなければ確定できないことを示す。`eventCount` と `lastRecordedSeq` は成功した Event 行 write の数値であり、電源断後の永続性を保証しない。`report` の正常応答は `status: "ok"`、`recording.status: complete|partial|invalid`、`runState` を**独立**に返す。invalid Recording でも accepted prefix の inspection report が生成できれば exit 0。`recording.issue` は line と安定した code のみで raw line を含まない。
+ 
++`recover` の成功応答は `protocolVersion: 2`、`status: "ok"`、救出した prefix の `runId` / `runState` と、次の二つの object を返す。Run が未開始なら `runId` / `runState` は `null`。成功 stdout は一行の JSON のみで、Terminal 表示は行わない。
++
++- `sourceRecording: { recordingVersion: 1, status, eventCount, lastRecordedSeq }`: 入力の `complete` / `partial` / `invalid` 分類。`invalid` のときだけ `issue: { line, code }` を含み、既存 Reader の安全な位置と安定 code に一致する。
++- `recording: { recordingVersion: 1, status, eventCount, lastRecordedSeq }`: 新出力の metadata。入力が `complete` のときだけ `complete`、それ以外は `partial`。件数と最後の seq は救出した Event 列に一致し、0 Event の seq は `null`。終端 Run Result があっても partial / invalid 入力を complete に昇格しない。
++
++`recover` の不正 header は上限超過を含め exit 2、既存出力との衝突も `INVALID_ARGUMENT` / exit 2、入出力障害は `IO_ERROR` / exit 7、中断は `INTERRUPTED` / exit 130。復旧失敗は次の共通 error 形式で返すが、`accepted` は付けない。正常な救出の `status: "ok"` は復旧操作の成功であり、Run の業務結果ではない。
++
+ 失敗時は可能なら次の一行を返す。説明文の完全一致ではなく `error.code` で分岐する。説明文には raw input、secret、stack trace を含めない。stdout 自体が書けないときは応答の配送を保証せず終了コード 7 とする。
+ 
+ ```json
+diff --git a/docs/presentation-recording.md b/docs/presentation-recording.md
+index bb5a855..280e2c7 100644
+--- a/docs/presentation-recording.md
++++ b/docs/presentation-recording.md
+@@ -31,6 +31,21 @@ Header は一つで、Run ID を確定しない。最初の `run.started` が Ru
+ 
+ Reader は file stream を有界 line ごとに読み、同じ `PresentationSession` へ Event を渡す。途中の破損を探し直して後続を勝手に受理しない。invalid raw line は Report や machine response に埋め込まない。Report は accepted prefix の State を表示し、Recording status と安全な issue location を別枠で付ける。partial/invalid を Run `failed` / `cancelled` に変換しない。
+ 
++## 公開 CLI による救出
++
++```sh
++hamio presentation recover --input run.ndjson --output recovered.ndjson
++hamio presentation report --input recovered.ndjson --output recovered.html
++```
++
++`recover` は元ファイルを変更せず、Reader が受理した完全な Event 行だけを元の順序・意味で別の canonical Recording v1 へ書き出す。最新 State の snapshot から Event を再生成しないため、途中の Task 更新や Run Result も受理されたまま残る。LF のない最終 fragment は保存せず、途中の不正な UTF-8 / JSON / shape / version / seq / runId / 状態遷移で停止し、後続を探さない。CRLF、空行、trailer 不一致、trailer 後の byte も上の Reader 分類に従う。
++
++不完全・不正・未知の header は対象外で、最終出力を作らず失敗する。有効 header のみなら空の partial を救出できる。出力は header、受理済み Event、正しい count / lastSeq の trailer を持ち、既存 Reader / Report で読める。入力が complete のときだけ complete にし、partial / invalid は partial にする。`run.finished` が既にあっても Recording を complete に昇格しない。Run の running / succeeded / failed / cancelled は独立して保持し、終了 Event、時刻、環境、業務結果を補わない。不正 raw 行や未受理文字列を出力 file・応答に含めない。応答と終了コードは [CLI 契約](presentation-api.md#入出力と終了)を参照する。
++
++出力と同じ directory 内に mode `0600` の一時 file を排他的に作成し、write / sync / close 完了後に hard link で final path を排他的に公開する。元ファイルと同じ path、既存 file、symlink、hardlink、競合する作成は上書きしない。最終 path に途中の Recording を公開せず、失敗・中断時は descriptor と一時 file を片付ける。入力が読めない場合や出力 directory がない・書込み不能な場合も失敗する。入力は State と有界 frame で streaming 処理し、全入力や Event 全履歴を保持しない。既存 Recording / Protocol / Session 上限は維持し、中断可能な I/O へ signal を伝播する。
++
++OS crash / power loss への追加耐久性、他 process が入力を同時変更する際の snapshot 保証、業務の再実行・追記再開、自由文の自動秘匿は提供しない。
++
+ ## Limits と耐久性
+ 
+ | 対象             |                上限 |
+diff --git a/src/application/error.ts b/src/application/error.ts
+index f75d69e..6127352 100644
+--- a/src/application/error.ts
++++ b/src/application/error.ts
+@@ -30,6 +30,16 @@ export class OperationError extends Error {
+ 
+ export class Cancelled extends Error {}
+ 
++export class RecordingRecoveryError extends Error {
++  constructor(
++    readonly code: string,
++    readonly exitCode: number,
++    message: string,
++  ) {
++    super(message);
++  }
++}
++
+ export function invalid(message = "Input does not match the API contract."): never {
+   throw new OperationError("INVALID_REQUEST", message);
+ }
+diff --git a/src/application/metadata.ts b/src/application/metadata.ts
+index 6354808..f3f8e92 100644
+--- a/src/application/metadata.ts
++++ b/src/application/metadata.ts
+@@ -7,6 +7,7 @@ Presentation Protocol v2:
+   hamio presentation static [--input FILE|-] [--no-color]
+   hamio presentation live [--record FILE] [--no-color] [--no-motion]
+   hamio presentation report --input RECORDING --output HTML
++  hamio presentation recover --input RECORDING --output RECORDING
+   hamio presentation capabilities
+ 
+ Interaction:
+diff --git a/src/application/presentation-cli.ts b/src/application/presentation-cli.ts
+index 2e6bbb5..d9aab87 100644
+--- a/src/application/presentation-cli.ts
++++ b/src/application/presentation-cli.ts
+@@ -4,7 +4,7 @@ import { Output } from "../adapters/output.ts";
+ import type { RecordedReplay } from "../recording/reader.ts";
+ import { recordingLimits, recordingVersion } from "../recording/format.ts";
+ import { RecordingWriteError, RecordingWriter } from "../recording/writer.ts";
+-import { Cancelled, OperationError } from "./error.ts";
++import { Cancelled, OperationError, RecordingRecoveryError } from "./error.ts";
+ import { PresentationError } from "../presentation/error.ts";
+ import { stateLimits } from "../presentation/limits.ts";
+ import { PresentationSession } from "../presentation/session.ts";
+@@ -29,7 +29,8 @@ type Command =
+   | { kind: "capabilities" }
+   | { kind: "static"; input: string; noColor: boolean }
+   | { kind: "live"; noColor: boolean; noMotion: boolean; record?: string }
+-  | { kind: "report"; input: string; output: string };
++  | { kind: "report"; input: string; output: string }
++  | { kind: "recover"; input: string; output: string };
+ 
+ class CliError extends Error {
+   constructor(
+@@ -45,6 +46,7 @@ const help = `hamio presentation — Presentation Protocol v2
+   hamio presentation static [--input FILE|-] [--no-color]
+   hamio presentation live [--record FILE] [--no-color] [--no-motion]
+   hamio presentation report --input RECORDING --output HTML
++  hamio presentation recover --input RECORDING --output RECORDING
+   hamio presentation capabilities
+ 
+ Static reads one v2 JSON document; live reads v2 NDJSON from stdin.
+@@ -56,7 +58,8 @@ function parse(args: readonly string[]): Command {
+   const [kind, ...rest] = args;
+   if ((kind === undefined || kind === "--help") && rest.length === 0) return { kind: "help" };
+   if (kind === "capabilities" && rest.length === 0) return { kind };
+-  if (kind === "report") {
++  if (kind === "report" || kind === "recover") {
++    const required = kind === "report" ? "Report" : "Recovery";
+     let input: string | undefined;
+     let output: string | undefined;
+     for (let index = 0; index < rest.length; index++) {
+@@ -68,14 +71,20 @@ function parse(args: readonly string[]): Command {
+         path.startsWith("--") ||
+         path === "-"
+       )
+-        throw new CliError("INVALID_ARGUMENT", "Report requires --input FILE and --output FILE.");
++        throw new CliError(
++          "INVALID_ARGUMENT",
++          `${required} requires --input FILE and --output FILE.`,
++        );
+       if (option === "--input" && input === undefined) input = path;
+       else if (option === "--output" && output === undefined) output = path;
+       else throw new CliError("INVALID_ARGUMENT", "An option is unknown or repeated.");
+       index++;
+     }
+     if (!input || !output)
+-      throw new CliError("INVALID_ARGUMENT", "Report requires --input FILE and --output FILE.");
++      throw new CliError(
++        "INVALID_ARGUMENT",
++        `${required} requires --input FILE and --output FILE.`,
++      );
+     return { kind, input, output };
+   }
+   if (kind !== "static" && kind !== "live")
+@@ -114,6 +123,8 @@ function runSummary(state: PresentationState) {
+ }
+ 
+ function issue(error: unknown): { code: string; exit: number; message: string } {
++  if (error instanceof RecordingRecoveryError)
++    return { code: error.code, exit: error.exitCode, message: error.message };
+   if (error instanceof Cancelled)
+     return { code: "INTERRUPTED", exit: 130, message: "Presentation input was interrupted." };
+   if (error instanceof CliError)
+@@ -191,11 +202,24 @@ export async function executePresentation(
+     }
+     if (command.kind === "capabilities") {
+       await machine.write(
+-        `${JSON.stringify({ protocolVersion: 2, version: VERSION, modes: ["static", "live"], renderer: "terminal", recordingVersion, recording: { live: true, report: "html", limits: recordingLimits }, limits: { wire: protocolLimits, state: stateLimits } })}\n`,
++        `${JSON.stringify({ protocolVersion: 2, version: VERSION, modes: ["static", "live"], renderer: "terminal", recordingVersion, recording: { live: true, report: "html", recover: true, limits: recordingLimits }, limits: { wire: protocolLimits, state: stateLimits } })}\n`,
+       );
+       return 0;
+     }
+     if (ports.signal.aborted) throw ports.signal.reason ?? new Cancelled();
++    if (command.kind === "recover") {
++      const { recoverRecording } = await import("./presentation-recover.ts");
++      const { replay, status } = await recoverRecording(
++        command.input,
++        command.output,
++        ports.signal,
++      );
++      const state = replay.kind === "invalid" ? replay.acceptedPrefix : replay.state;
++      await machine.write(
++        `${JSON.stringify({ protocolVersion: 2, status: "ok", ...runSummary(state), sourceRecording: { recordingVersion, status: replay.kind, eventCount: replay.eventCount, lastRecordedSeq: replay.lastSeq, ...(replay.kind === "invalid" ? { issue: { line: replay.line, code: replay.issue.code } } : {}) }, recording: { recordingVersion, status, eventCount: replay.eventCount, lastRecordedSeq: replay.lastSeq } })}\n`,
++      );
++      return 0;
++    }
+     if (command.kind === "report") {
+       const [{ readRecording }, { writeReport }] = await Promise.all([
+         import("../recording/reader.ts"),
+diff --git a/src/application/presentation-recover.ts b/src/application/presentation-recover.ts
+new file mode 100644
+index 0000000..140701e
+--- /dev/null
++++ b/src/application/presentation-recover.ts
+@@ -0,0 +1,50 @@
++import { randomUUID } from "node:crypto";
++import { link, open, unlink } from "node:fs/promises";
++import { dirname, join } from "node:path";
++import { Cancelled, RecordingRecoveryError } from "./error.ts";
++import { readRecording } from "../recording/reader.ts";
++import { RecordingWriteError, RecordingWriter } from "../recording/writer.ts";
++
++/** Only validated frames cross into the writer; publication never replaces a path. */
++export async function recoverRecording(input: string, output: string, signal: AbortSignal) {
++  const temporary = join(dirname(output), `.hamio-recover-${randomUUID()}.tmp`);
++  let ownsTemporary = false;
++  let writer: RecordingWriter | undefined;
++  try {
++    const replay = await readRecording(input, signal, {
++      async start() {
++        const file = await open(temporary, "wx", 0o600);
++        ownsTemporary = true;
++        writer = await RecordingWriter.fromFile(file, signal);
++      },
++      async append(event) {
++        if (!writer) throw new Error("Recording writer was not initialized.");
++        await writer.append(event);
++      },
++    });
++    if (!writer) {
++      if (replay.kind === "invalid")
++        throw new RecordingRecoveryError(replay.issue.code, 2, replay.issue.message);
++      throw new Error("Recording header was not accepted.");
++    }
++    const status = replay.kind === "complete" ? "complete" : "partial";
++    await writer.finish(status);
++    signal.throwIfAborted();
++    try {
++      await link(temporary, output);
++    } catch (error) {
++      if ((error as NodeJS.ErrnoException).code === "EEXIST")
++        throw new RecordingRecoveryError("INVALID_ARGUMENT", 2, "Output file already exists.");
++      throw error;
++    }
++    return { replay, status };
++  } catch (error) {
++    if (signal.aborted) throw new Cancelled();
++    if (error instanceof RecordingRecoveryError || error instanceof RecordingWriteError)
++      throw error;
++    throw new RecordingRecoveryError("IO_ERROR", 7, "Could not recover Recording file.");
++  } finally {
++    await writer?.abort();
++    if (ownsTemporary) await unlink(temporary).catch(() => {});
++  }
++}
+diff --git a/src/recording/reader.ts b/src/recording/reader.ts
+index dbbc64c..5a66002 100644
+--- a/src/recording/reader.ts
++++ b/src/recording/reader.ts
+@@ -1,6 +1,6 @@
+ import { createReadStream } from "node:fs";
+ import { PresentationError } from "../presentation/error.ts";
+-import type { PresentationState } from "../presentation/model.ts";
++import type { PresentationEvent, PresentationState } from "../presentation/model.ts";
+ import { PresentationSession } from "../presentation/session.ts";
+ import { decodeEventLine } from "../protocol/decode.ts";
+ import { ProtocolError } from "../protocol/error.ts";
+@@ -8,6 +8,10 @@ import { protocolLimits } from "../protocol/limits.ts";
+ import { recordingLimits, recordingVersion } from "./format.ts";
+ 
+ type RecordingIssue = ProtocolError | PresentationError;
++interface RecordingSink {
++  start(): Promise<void>;
++  append(event: PresentationEvent): Promise<void>;
++}
+ export type RecordedReplay =
+   | {
+       kind: "complete" | "partial";
+@@ -92,7 +96,12 @@ function trailer(line: Buffer): {
+ }
+ 
+ /** Streams bounded lines; a final fragment without newline is never an accepted frame. */
+-export async function readRecording(path: string, signal?: AbortSignal): Promise<RecordedReplay> {
++export async function readRecording(
++  path: string,
++  signal?: AbortSignal,
++  sink?: RecordingSink,
++): Promise<RecordedReplay> {
++  signal?.throwIfAborted();
+   const session = new PresentationSession();
+   let count = 0;
+   let last: number | null = null;
+@@ -111,7 +120,7 @@ export async function readRecording(path: string, signal?: AbortSignal): Promise
+     bytes,
+     issue,
+   });
+-  const processLine = (line: Buffer): void => {
++  const processLine = (line: Buffer): PresentationEvent | "header" | undefined => {
+     lineNumber++;
+     if (seenTrailer) {
+       result = bad(new ProtocolError("INVALID_SHAPE", "Frame follows Recording trailer."));
+@@ -122,7 +131,7 @@ export async function readRecording(path: string, signal?: AbortSignal): Promise
+       if (!seenHeader) {
+         header(line);
+         seenHeader = true;
+-        return;
++        return "header";
+       }
+       if (line.length === 0) invalidShape("Empty Recording frame.");
+       // Parse only to identify the frame family; the protocol decoder remains the event validator.
+@@ -170,6 +179,7 @@ export async function readRecording(path: string, signal?: AbortSignal): Promise
+       session.accept(event);
+       count++;
+       last = event.seq;
++      return event;
+     } catch (error) {
+       if (!(error instanceof ProtocolError) && !(error instanceof PresentationError)) throw error;
+       result = bad(error);
+@@ -178,6 +188,7 @@ export async function readRecording(path: string, signal?: AbortSignal): Promise
+   const stream = createReadStream(path, { highWaterMark: 64 * 1024, signal });
+   try {
+     for await (const chunk of stream) {
++      signal?.throwIfAborted();
+       bytes += chunk.byteLength;
+       if (bytes > recordingLimits.bytes) {
+         lineNumber++;
+@@ -192,7 +203,12 @@ export async function readRecording(path: string, signal?: AbortSignal): Promise
+           result = bad(new ProtocolError("LIMIT_EXCEEDED", "Recording line exceeds its limit."));
+           break;
+         }
+-        processLine(rest.length === 0 ? part : Buffer.concat([rest, part]));
++        const accepted = processLine(rest.length === 0 ? part : Buffer.concat([rest, part]));
++        if (sink && accepted !== undefined) {
++          signal?.throwIfAborted();
++          if (accepted === "header") await sink.start();
++          else await sink.append(accepted);
++        }
+         rest = Buffer.alloc(0);
+         if (result?.kind === "invalid") break;
+         start = end + 1;
+@@ -209,6 +225,7 @@ export async function readRecording(path: string, signal?: AbortSignal): Promise
+   } finally {
+     stream.destroy();
+   }
++  signal?.throwIfAborted();
+   if (result?.kind === "invalid") return result;
+   if (!seenHeader) {
+     lineNumber++;
+diff --git a/src/recording/writer.ts b/src/recording/writer.ts
+index 874a570..1ff2992 100644
+--- a/src/recording/writer.ts
++++ b/src/recording/writer.ts
+@@ -23,7 +23,10 @@ export class RecordingWriter {
+   private finished = false;
+   private closed = false;
+ 
+-  private constructor(private readonly file: FileHandle) {}
++  private constructor(
++    private readonly file: FileHandle,
++    private readonly signal?: AbortSignal,
++  ) {}
+ 
+   static async create(path: string): Promise<RecordingWriter> {
+     let file: FileHandle;
+@@ -34,7 +37,12 @@ export class RecordingWriter {
+         throw new RecordingWriteError("INVALID_ARGUMENT");
+       throw new RecordingWriteError("IO_ERROR");
+     }
+-    const writer = new RecordingWriter(file);
++    return RecordingWriter.fromFile(file);
++  }
++
++  /** Takes ownership of an exclusively created file, including initialization failures. */
++  static async fromFile(file: FileHandle, signal?: AbortSignal): Promise<RecordingWriter> {
++    const writer = new RecordingWriter(file, signal);
+     try {
+       await writer.write(headerLine);
+       return writer;
+@@ -72,6 +80,7 @@ export class RecordingWriter {
+       this.closed = true;
+     } catch {
+       await this.abort();
++      this.signal?.throwIfAborted();
+       throw new RecordingWriteError("IO_ERROR");
+     }
+   }
+@@ -87,12 +96,14 @@ export class RecordingWriter {
+   }
+ 
+   private async write(line: string): Promise<void> {
++    this.signal?.throwIfAborted();
+     const buffer = Buffer.from(line);
+     if (this.bytes + buffer.byteLength > recordingLimits.bytes)
+       throw new RecordingWriteError("LIMIT_EXCEEDED");
+     try {
+       let offset = 0;
+       while (offset < buffer.byteLength) {
++        this.signal?.throwIfAborted();
+         const { bytesWritten } = await this.file.write(
+           buffer,
+           offset,
+@@ -104,6 +115,7 @@ export class RecordingWriter {
+       }
+       this.bytes += buffer.byteLength;
+     } catch {
++      this.signal?.throwIfAborted();
+       throw new RecordingWriteError("IO_ERROR");
+     }
+   }
+diff --git a/tests/executable.test.ts b/tests/executable.test.ts
+index 427e7a6..f07f63f 100644
+--- a/tests/executable.test.ts
++++ b/tests/executable.test.ts
+@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
+ import { join, resolve } from "node:path";
+ import { buildExecutable } from "../scripts/build/compiler.ts";
+ import { captureTerminal } from "../scripts/terminal-capture/capture.ts";
++import { headerLine, trailerLine } from "../src/recording/format.ts";
+ 
+ let binary = process.env.HAMIO_TEST_BINARY ? resolve(process.env.HAMIO_TEST_BINARY) : "";
+ let workspace: string | undefined;
+@@ -241,3 +242,63 @@ test("native v2 records through a real PTY and reports without Bun or Node in PA
+     await rm(directory, { recursive: true, force: true });
+   }
+ });
++
++test("native recovery salvages a terminal Run without Bun or Node in PATH", async () => {
++  const directory = await mkdtemp(join(tmpdir(), "hamio-recover-native-"));
++  try {
++    const input = join(directory, "input.ndjson");
++    const output = join(directory, "output.ndjson");
++    const accepted = `${headerLine}${[
++      { protocolVersion: 2, runId: "native", seq: 0, type: "run.started", title: "Native" },
++      {
++        protocolVersion: 2,
++        runId: "native",
++        seq: 1,
++        type: "run.finished",
++        result: { kind: "succeeded", data: { kind: "none" } },
++      },
++    ]
++      .map((event) => JSON.stringify(event))
++      .join("\n")}\n`;
++    const source = `${accepted}unaccepted-native-marker\n`;
++    await Bun.write(input, source);
++    const child = Bun.spawn(
++      [binary, "presentation", "recover", "--input", input, "--output", output],
++      {
++        cwd: directory,
++        env: { PATH: "/nonexistent", HOME: directory },
++        stdin: "ignore",
++        stdout: "pipe",
++        stderr: "pipe",
++        timeout: 5000,
++      },
++    );
++    const [code, stdout, stderr] = await Promise.all([
++      child.exited,
++      new Response(child.stdout).text(),
++      new Response(child.stderr).text(),
++    ]);
++    expect(code).toBe(0);
++    expect(stderr).toBe("");
++    expect(stdout.trim().split("\n")).toHaveLength(1);
++    expect(JSON.parse(stdout)).toEqual({
++      protocolVersion: 2,
++      status: "ok",
++      runId: "native",
++      runState: "succeeded",
++      sourceRecording: {
++        recordingVersion: 1,
++        status: "invalid",
++        eventCount: 2,
++        lastRecordedSeq: 1,
++        issue: { line: 4, code: "INVALID_JSON" },
++      },
++      recording: { recordingVersion: 1, status: "partial", eventCount: 2, lastRecordedSeq: 1 },
++    });
++    expect(stdout).not.toContain("unaccepted-native-marker");
++    expect(await readFile(input, "utf8")).toBe(source);
++    expect(await readFile(output, "utf8")).toBe(`${accepted}${trailerLine("partial", 2, 1)}`);
++  } finally {
++    await rm(directory, { recursive: true, force: true });
++  }
++});
+diff --git a/tests/recover-cli.test.ts b/tests/recover-cli.test.ts
+new file mode 100644
+index 0000000..4452f96
+--- /dev/null
++++ b/tests/recover-cli.test.ts
+@@ -0,0 +1,475 @@
++import { expect, test } from "bun:test";
++import {
++  chmod,
++  link,
++  mkdir,
++  mkdtemp,
++  open,
++  readdir,
++  readFile,
++  rm,
++  stat,
++  symlink,
++  writeFile,
++} from "node:fs/promises";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { headerLine, recordingLimits, trailerLine } from "../src/recording/format.ts";
++import { readRecording } from "../src/recording/reader.ts";
++import { productCommand } from "./support/command.ts";
++
++const frame = (seq: number, type: string, fields: Record<string, unknown> = {}) =>
++  JSON.stringify({ protocolVersion: 2, runId: "recovered", seq, type, ...fields });
++const start = frame(0, "run.started", { title: "Build 日本語" });
++const finish = frame(1, "run.finished", { result: { kind: "succeeded", data: { kind: "none" } } });
++const prefix = `${headerLine}${start}\n`;
++const finished = `${prefix}${finish}\n`;
++const complete = `${finished}${trailerLine("complete", 2, 1)}`;
++const rejected = "unaccepted-private-marker";
++
++async function cli(args: string[]) {
++  const child = Bun.spawn(productCommand(args), {
++    stdin: "ignore",
++    stdout: "pipe",
++    stderr: "pipe",
++    timeout: 5000,
++  });
++  const [code, stdout, stderr] = await Promise.all([
++    child.exited,
++    new Response(child.stdout).text(),
++    new Response(child.stderr).text(),
++  ]);
++  return { code, stdout, stderr };
++}
++
++async function fixture(
++  body: string | Uint8Array,
++  check: (input: string, output: string, dir: string) => Promise<void>,
++) {
++  const dir = await mkdtemp(join(tmpdir(), "hamio-recover-cli-"));
++  const input = join(dir, "source.ndjson");
++  const output = join(dir, "rescued.ndjson");
++  try {
++    await writeFile(input, body);
++    await check(input, output, dir);
++  } finally {
++    await chmod(dir, 0o700);
++    await rm(dir, { recursive: true, force: true });
++  }
++}
++
++async function recover(input: string, output: string) {
++  const result = await cli(["presentation", "recover", "--input", input, "--output", output]);
++  expect(result.stderr).toBe("");
++  expect(result.stdout.trim().split("\n")).toHaveLength(1);
++  expect(result.stdout).toEndWith("\n");
++  return { ...result, response: JSON.parse(result.stdout) };
++}
++
++test("recovery is discoverable without changing existing capabilities", async () => {
++  for (const args of [["--help"], ["presentation", "--help"]]) {
++    const help = await cli(args);
++    expect(help.code).toBe(0);
++    expect(help.stdout).toContain(
++      "hamio presentation recover --input RECORDING --output RECORDING",
++    );
++  }
++  const result = await cli(["presentation", "capabilities"]);
++  expect(result.code).toBe(0);
++  expect(JSON.parse(result.stdout)).toMatchObject({
++    protocolVersion: 2,
++    modes: ["static", "live"],
++    renderer: "terminal",
++    recordingVersion: 1,
++    recording: { live: true, report: "html", recover: true, limits: recordingLimits },
++  });
++});
++
++test.each([
++  [],
++  ["--input"],
++  ["--output"],
++  ["--input", "x"],
++  ["--output", "y"],
++  ["--input", "-", "--output", "y"],
++  ["--input", "x", "--output", "-"],
++  ["--input", "x", "--output"],
++  ["--input", "--output", "y"],
++  ["--input", "x", "--output", "y", "--input", "x"],
++  ["--input", "x", "--output", "y", "--output", "z"],
++  ["--input", "x", "--output", "y", "--unknown"],
++  ["--input", "x", "--output", "y", "extra"],
++  ["--input", "x", "--output", "y", "--no-color"],
++  ["--input", "", "--output", "y"],
++  ["--input=x", "--output=y"],
++])("recovery rejects invalid arguments %j", async (...args) => {
++  const result = await cli(["presentation", "recover", ...args]);
++  expect(result.code).toBe(2);
++  expect(result.stderr).toBe("");
++  expect(JSON.parse(result.stdout)).toMatchObject({
++    protocolVersion: 2,
++    status: "error",
++    error: { code: "INVALID_ARGUMENT" },
++  });
++});
++
++test.each([
++  ["header only", headerLine, "partial", 0, null],
++  ["empty partial", `${headerLine}${trailerLine("partial", 0, null)}`, "partial", 0, null],
++  ["running prefix", prefix, "partial", 1, "running"],
++  ["final event without LF", `${prefix}${finish}`, "partial", 1, "running"],
++  ["broken final fragment", `${prefix}{${rejected}`, "partial", 1, "running"],
++  [
++    "invalid UTF-8 fragment",
++    Buffer.concat([Buffer.from(prefix), Buffer.from([0xff])]),
++    "partial",
++    1,
++    "running",
++  ],
++  ["finished without trailer", finished, "partial", 2, "succeeded"],
++  ["partial terminal run", `${finished}${trailerLine("partial", 2, 1)}`, "partial", 2, "succeeded"],
++  [
++    "trailer without LF",
++    `${finished}${trailerLine("complete", 2, 1).trimEnd()}`,
++    "partial",
++    2,
++    "succeeded",
++  ],
++  ["complete run", complete, "complete", 2, "succeeded"],
++] as const)("recovery preserves %s", async (_name, body, status, count, runState) => {
++  await fixture(body, async (input, output, dir) => {
++    const original = await readFile(input);
++    const result = await recover(input, output);
++    expect(result.code).toBe(0);
++    const metadata = {
++      recordingVersion: 1,
++      status,
++      eventCount: count,
++      lastRecordedSeq: count === 0 ? null : count - 1,
++    };
++    expect(result.response).toEqual({
++      protocolVersion: 2,
++      status: "ok",
++      runId: count === 0 ? null : "recovered",
++      runState,
++      sourceRecording: metadata,
++      recording: metadata,
++    });
++    expect(await readFile(input)).toEqual(original);
++    expect((await stat(output)).mode & 0o777).toBe(0o600);
++    expect((await readdir(dir)).sort()).toEqual(["rescued.ndjson", "source.ndjson"]);
++    const events = count === 0 ? "" : count === 1 ? `${start}\n` : `${start}\n${finish}\n`;
++    expect(await readFile(output, "utf8")).toBe(
++      `${headerLine}${events}${trailerLine(status, count, count === 0 ? null : count - 1)}`,
++    );
++    const source = await readRecording(input);
++    const rescued = await readRecording(output);
++    expect(rescued.kind).toBe(status);
++    expect(rescued).toMatchObject({
++      state: source.kind === "invalid" ? source.acceptedPrefix : source.state,
++    });
++  });
++});
++
++test.each([
++  ["JSON", `${prefix}{"${rejected}":\n${finish}\n`, 3, "INVALID_JSON", 1],
++  [
++    "UTF-8",
++    Buffer.concat([Buffer.from(prefix), Buffer.from([0xff, 10]), Buffer.from(`${finish}\n`)]),
++    3,
++    "INVALID_UTF8",
++    1,
++  ],
++  [
++    "shape",
++    `${prefix}${frame(1, "run.finished", { extra: rejected })}\n${finish}\n`,
++    3,
++    "INVALID_SHAPE",
++    1,
++  ],
++  [
++    "version",
++    `${prefix}${finish.replace('"protocolVersion":2', '"protocolVersion":9')}\n`,
++    3,
++    "UNSUPPORTED_VERSION",
++    1,
++  ],
++  [
++    "seq",
++    `${prefix}${finish.replace('"seq":1', '"seq":2')}\n${finish}\n`,
++    3,
++    "INVALID_TRANSITION",
++    1,
++  ],
++  [
++    "runId",
++    `${prefix}${finish.replace('"recovered"', '"other"')}\n${finish}\n`,
++    3,
++    "INVALID_TRANSITION",
++    1,
++  ],
++  [
++    "transition",
++    `${prefix}${frame(1, "task.started", { taskId: rejected })}\n${finish}\n`,
++    3,
++    "INVALID_TRANSITION",
++    1,
++  ],
++  ["before start", `${headerLine}${finish}\n${start}\n`, 2, "INVALID_TRANSITION", 0],
++  ["CRLF", `${prefix}${finish}\r\n`, 3, "INVALID_SHAPE", 1],
++  ["blank", `${prefix}\n${finish}\n`, 3, "INVALID_SHAPE", 1],
++  ["count", `${prefix}${trailerLine("partial", 2, 0)}`, 3, "INVALID_SHAPE", 1],
++  ["lastSeq", `${prefix}${trailerLine("partial", 1, 1)}`, 3, "INVALID_SHAPE", 1],
++  ["unfinished complete", `${prefix}${trailerLine("complete", 1, 0)}`, 3, "INVALID_STATE", 1],
++  ["duplicate header", `${prefix}${headerLine}`, 3, "INVALID_SHAPE", 1],
++  ["duplicate trailer", `${complete}${trailerLine("complete", 2, 1)}`, 5, "INVALID_SHAPE", 2],
++  ["bytes after trailer", `${complete}${rejected}`, 5, "INVALID_SHAPE", 2],
++  ["event after trailer", `${complete}${start}\n`, 5, "INVALID_SHAPE", 2],
++  [
++    "CRLF trailer",
++    `${finished}${trailerLine("complete", 2, 1).replace("\n", "\r\n")}`,
++    4,
++    "INVALID_SHAPE",
++    2,
++  ],
++  [
++    "event frame limit",
++    `${prefix}${frame(1, "content.published", { item: { kind: "message", level: "info", text: "x".repeat(70_000) } })}\n`,
++    3,
++    "LIMIT_EXCEEDED",
++    1,
++  ],
++] as const)(
++  "recovery stops at invalid %s and matches existing reader",
++  async (_name, body, line, code, count) => {
++    await fixture(body, async (input, output) => {
++      const original = await readFile(input);
++      const source = await readRecording(input);
++      expect(source.kind).toBe("invalid");
++      if (source.kind !== "invalid") throw new Error("Expected invalid Recording.");
++      expect(source.line).toBe(line);
++      expect(source.issue.code).toBe(code);
++      const result = await recover(input, output);
++      expect(result.code).toBe(0);
++      expect(result.response).toMatchObject({
++        protocolVersion: 2,
++        status: "ok",
++        sourceRecording: {
++          status: "invalid",
++          eventCount: count,
++          issue: { line: source.line, code: source.issue.code },
++        },
++        recording: {
++          recordingVersion: 1,
++          status: "partial",
++          eventCount: count,
++          lastRecordedSeq: count === 0 ? null : count - 1,
++        },
++      });
++      const raw = await readFile(output, "utf8");
++      expect(raw).not.toContain(rejected);
++      expect(result.stdout).not.toContain(rejected);
++      const rescued = await readRecording(output);
++      expect(rescued.kind).toBe("partial");
++      expect(rescued).toMatchObject({ state: source.acceptedPrefix });
++      expect(await readFile(input)).toEqual(original);
++    });
++  },
++);
++
++test.each([
++  ["empty", ""],
++  ["fragment", headerLine.trimEnd()],
++  ["JSON", `{${rejected}\n`],
++  ["UTF-8", Buffer.from([0xff, 10])],
++  ["CRLF", headerLine.replace("\n", "\r\n")],
++  ["shape", headerLine.replace('"kind":"header"', `"kind":"header","extra":"${rejected}"`)],
++  ["version", headerLine.replace('"recordingVersion":1', '"recordingVersion":9')],
++  ["protocol", headerLine.replace('"protocolVersion":2', '"protocolVersion":9')],
++  ["metadata limit", `${" ".repeat(4096)}${headerLine}`],
++] as const)("invalid %s header fails without publishing", async (_name, body) => {
++  await fixture(body, async (input, output, dir) => {
++    const source = await readRecording(input);
++    if (source.kind !== "invalid") throw new Error("Expected invalid header.");
++    const result = await recover(input, output);
++    expect(result.code).toBe(2);
++    expect(result.response).toMatchObject({
++      protocolVersion: 2,
++      status: "error",
++      error: { code: source.issue.code },
++    });
++    expect(result.stdout).not.toContain(rejected);
++    expect(await readdir(dir)).toEqual(["source.ndjson"]);
++    expect(await readFile(input)).toEqual(Buffer.from(body));
++  });
++});
++
++test.each(["succeeded", "failed", "cancelled"] as const)(
++  "Run %s is independent of Recording completeness",
++  async (kind) => {
++    const result =
++      kind === "succeeded"
++        ? { kind, data: { kind: "none" } }
++        : kind === "failed"
++          ? { kind, failure: { code: "BUILD", message: "Failure", details: { kind: "none" } } }
++          : { kind, reason: "Producer stopped" };
++    for (const status of ["complete", "partial", "invalid"] as const) {
++      const ending = status === "invalid" ? `${rejected}\n` : trailerLine(status, 2, 1);
++      await fixture(
++        `${prefix}${frame(1, "run.finished", { result })}\n${ending}`,
++        async (input, output) => {
++          const rescued = await recover(input, output);
++          expect(rescued.code).toBe(0);
++          expect(rescued.response).toMatchObject({
++            runState: kind,
++            sourceRecording: { status },
++            recording: { status: status === "complete" ? "complete" : "partial" },
++          });
++        },
++      );
++    }
++  },
++);
++
++test.each(["same path", "file", "symlink", "dangling symlink", "hardlink", "directory"] as const)(
++  "recovery never overwrites %s",
++  async (kind) => {
++    await fixture(complete, async (input, target, dir) => {
++      const output = kind === "same path" ? input : target;
++      if (kind === "file") await writeFile(output, "existing");
++      if (kind === "symlink") await symlink(input, output);
++      if (kind === "dangling symlink") await symlink(join(dir, "absent"), output);
++      if (kind === "hardlink") await link(input, output);
++      if (kind === "directory") await mkdir(output);
++      const before = (await readdir(dir)).sort();
++      const result = await recover(input, output);
++      expect(result.code).toBe(2);
++      expect(result.response.error.code).toBe("INVALID_ARGUMENT");
++      expect(await readFile(input, "utf8")).toBe(complete);
++      if (kind === "file") expect(await readFile(output, "utf8")).toBe("existing");
++      expect((await readdir(dir)).sort()).toEqual(before);
++    });
++  },
++);
++
++test.each([
++  "missing input",
++  "input directory",
++  "unreadable input",
++  "missing directory",
++  "unwritable directory",
++] as const)("recovery classifies %s as IO_ERROR", async (kind) => {
++  await fixture(complete, async (source, target, dir) => {
++    const input =
++      kind === "missing input" ? join(dir, "absent") : kind === "input directory" ? dir : source;
++    const output = kind === "missing directory" ? join(dir, "absent", "out") : target;
++    if (kind === "unreadable input") await chmod(input, 0);
++    if (kind === "unwritable directory") await chmod(dir, 0o500);
++    try {
++      const result = await recover(input, output);
++      expect(result.code).toBe(7);
++      expect(result.response.error.code).toBe("IO_ERROR");
++      expect(result.stdout).not.toContain(dir);
++      expect(await readdir(dir)).toEqual(["source.ndjson"]);
++    } finally {
++      await chmod(source, 0o600);
++      await chmod(dir, 0o700);
++    }
++  });
++});
++
++test("recovery retains intermediate events across read chunks above the static limit and feeds report", async () => {
++  const events = [
++    start,
++    frame(1, "task-group.declared", { groupId: "g", label: "Group" }),
++    frame(2, "task.declared", {
++      taskId: "work",
++      label: "Work",
++      placement: { kind: "group", groupId: "g" },
++    }),
++    frame(3, "task.started", { taskId: "work" }),
++  ];
++  for (let index = 0; index < 4000; index++)
++    events.push(
++      frame(events.length, "task.progressed", {
++        taskId: "work",
++        progress: { kind: "determinate", current: index, total: 4000 },
++      }),
++    );
++  events.push(
++    frame(events.length, "content.published", {
++      item: { kind: "message", level: "info", text: "Accepted free text 日本語" },
++    }),
++  );
++  events.push(
++    frame(events.length, "task.finished", {
++      taskId: "work",
++      result: { kind: "succeeded", data: { kind: "none" } },
++    }),
++  );
++  events.push(
++    frame(events.length, "run.finished", { result: { kind: "succeeded", data: { kind: "none" } } }),
++  );
++  const body = `${headerLine}${events.join("\n")}\n${trailerLine("complete", events.length, events.length - 1)}`;
++  expect(Buffer.byteLength(body)).toBeGreaterThan(256 * 1024);
++  await fixture(body, async (input, output, dir) => {
++    const result = await recover(input, output);
++    expect(result.code).toBe(0);
++    expect(result.response.recording.eventCount).toBe(events.length);
++    expect(await readFile(output, "utf8")).toBe(body);
++    const html = join(dir, "report.html");
++    const report = await cli(["presentation", "report", "--input", output, "--output", html]);
++    expect(report.code).toBe(0);
++    expect(JSON.parse(report.stdout)).toMatchObject({
++      runState: "succeeded",
++      recording: { status: "complete", eventCount: events.length },
++    });
++    expect(await readFile(html, "utf8")).toContain("Accepted free text 日本語");
++  });
++});
++
++test.each(["SIGINT", "SIGTERM"] as const)(
++  "recovery propagates %s through input cancellation and removes temporary files",
++  async (signal) => {
++    await fixture("", async (_input, output, dir) => {
++      const fifo = join(dir, "source.fifo");
++      expect(await Bun.spawn(["mkfifo", fifo], { stdout: "ignore", stderr: "ignore" }).exited).toBe(
++        0,
++      );
++      const child = Bun.spawn(
++        productCommand(["presentation", "recover", "--input", fifo, "--output", output]),
++        { stdin: "ignore", stdout: "pipe", stderr: "pipe", timeout: 5000 },
++      );
++      const feed = await open(fifo, "w");
++      try {
++        await feed.writeFile(prefix);
++        let ready = false;
++        for (let attempt = 0; attempt < 200; attempt++) {
++          ready = (await readdir(dir)).some((name) => name.endsWith(".tmp"));
++          if (ready) break;
++          await Bun.sleep(5);
++        }
++        expect(ready).toBe(true);
++        expect(await Bun.file(output).exists()).toBe(false);
++        child.kill(signal);
++        await feed.close();
++        const [code, stdout, stderr] = await Promise.all([
++          child.exited,
++          new Response(child.stdout).text(),
++          new Response(child.stderr).text(),
++        ]);
++        expect(code).toBe(130);
++        expect(stderr).toBe("");
++        expect(JSON.parse(stdout)).toMatchObject({
++          protocolVersion: 2,
++          status: "error",
++          error: { code: "INTERRUPTED" },
++        });
++        expect((await readdir(dir)).sort()).toEqual(["source.fifo", "source.ndjson"]);
++      } finally {
++        child.kill();
++        await feed.close().catch(() => {});
++      }
++    });
++  },
++);
+diff --git a/tests/recover.test.ts b/tests/recover.test.ts
+new file mode 100644
+index 0000000..662453b
+--- /dev/null
++++ b/tests/recover.test.ts
+@@ -0,0 +1,223 @@
++import { expect, spyOn, test } from "bun:test";
++import { mkdtemp, readdir, readFile, rm, writeFile, type FileHandle } from "node:fs/promises";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { Readable, Writable } from "node:stream";
++import { Cancelled } from "../src/application/error.ts";
++import { executePresentation } from "../src/application/presentation-cli.ts";
++import { headerLine, trailerLine } from "../src/recording/format.ts";
++import { readRecording } from "../src/recording/reader.ts";
++import { RecordingWriter } from "../src/recording/writer.ts";
++
++const start = '{"protocolVersion":2,"runId":"r","seq":0,"type":"run.started","title":"Run"}';
++const finish =
++  '{"protocolVersion":2,"runId":"r","seq":1,"type":"run.finished","result":{"kind":"succeeded","data":{"kind":"none"}}}';
++const complete = `${headerLine}${start}\n${finish}\n${trailerLine("complete", 2, 1)}`;
++
++async function fixture(check: (input: string, output: string, dir: string) => Promise<void>) {
++  const dir = await mkdtemp(join(tmpdir(), "hamio-recover-io-"));
++  const input = join(dir, "input");
++  try {
++    await writeFile(input, complete);
++    await check(input, join(dir, "output"), dir);
++  } finally {
++    await rm(dir, { recursive: true, force: true });
++  }
++}
++
++async function execute(input: string, output: string, signal = new AbortController().signal) {
++  const machine: string[] = [];
++  const human: string[] = [];
++  const code = await executePresentation(["recover", "--input", input, "--output", output], {
++    stdin: Readable.from([]),
++    signal,
++    env: {},
++    stdout: new Writable({
++      write(chunk, _encoding, callback) {
++        machine.push(String(chunk));
++        callback();
++      },
++    }),
++    stderr: new Writable({
++      write(chunk, _encoding, callback) {
++        human.push(String(chunk));
++        callback();
++      },
++    }),
++  });
++  expect(human).toEqual([]);
++  expect(machine).toHaveLength(1);
++  expect(machine.join("")).not.toContain("private-fault-marker");
++  return { code, response: JSON.parse(machine.join("")) };
++}
++
++test.each(["header write", "event write", "zero write", "sync", "close"] as const)(
++  "recovery cleans file and descriptor after %s failure",
++  async (stage) => {
++    await fixture(async (input, output, dir) => {
++      const initialize = RecordingWriter.fromFile;
++      let handle: FileHandle | undefined;
++      const hook = spyOn(RecordingWriter, "fromFile").mockImplementationOnce(
++        async (file, signal) => {
++          handle = file;
++          if (stage === "header write")
++            spyOn(file, "write").mockRejectedValueOnce(new Error("private-fault-marker"));
++          const writer = await initialize(file, signal);
++          if (stage === "event write")
++            spyOn(file, "write").mockRejectedValueOnce(new Error("private-fault-marker"));
++          if (stage === "zero write")
++            spyOn(file, "write").mockResolvedValueOnce({ bytesWritten: 0, buffer: "" });
++          if (stage === "sync")
++            spyOn(file, "sync").mockRejectedValueOnce(new Error("private-fault-marker"));
++          if (stage === "close")
++            spyOn(file, "close").mockRejectedValueOnce(new Error("private-fault-marker"));
++          return writer;
++        },
++      );
++      try {
++        const result = await execute(input, output);
++        expect(result.code).toBe(7);
++        expect(result.response).toMatchObject({
++          protocolVersion: 2,
++          status: "error",
++          error: { code: "IO_ERROR" },
++        });
++        expect(handle?.fd).toBe(-1);
++        expect(await readdir(dir)).toEqual(["input"]);
++        expect(await readFile(input, "utf8")).toBe(complete);
++      } finally {
++        hook.mockRestore();
++      }
++    });
++  },
++);
++
++test("publication is exclusive even when a competitor creates the final path during sync", async () => {
++  await fixture(async (input, output, dir) => {
++    const initialize = RecordingWriter.fromFile;
++    let handle: FileHandle | undefined;
++    const hook = spyOn(RecordingWriter, "fromFile").mockImplementationOnce(async (file, signal) => {
++      handle = file;
++      const writer = await initialize(file, signal);
++      const sync = file.sync.bind(file);
++      spyOn(file, "sync").mockImplementationOnce(async () => {
++        expect(await Bun.file(output).exists()).toBe(false);
++        await sync();
++        await writeFile(output, "competitor", { flag: "wx" });
++      });
++      return writer;
++    });
++    try {
++      const result = await execute(input, output);
++      expect(result.code).toBe(2);
++      expect(result.response.error.code).toBe("INVALID_ARGUMENT");
++      expect(await readFile(output, "utf8")).toBe("competitor");
++      expect(handle?.fd).toBe(-1);
++      expect((await readdir(dir)).sort()).toEqual(["input", "output"]);
++    } finally {
++      hook.mockRestore();
++    }
++  });
++});
++
++test.each(["before start", "after event", "during sync", "after close"] as const)(
++  "recovery interrupted %s never publishes",
++  async (stage) => {
++    await fixture(async (input, output, dir) => {
++      const controller = new AbortController();
++      const initialize = RecordingWriter.fromFile;
++      let handle: FileHandle | undefined;
++      const hook = spyOn(RecordingWriter, "fromFile").mockImplementationOnce(
++        async (file, signal) => {
++          handle = file;
++          expect(signal).toBe(controller.signal);
++          const writer = await initialize(file, signal);
++          if (stage === "after event") {
++            const append = writer.append.bind(writer);
++            spyOn(writer, "append").mockImplementationOnce(async (event) => {
++              await append(event);
++              controller.abort(new Cancelled());
++            });
++          }
++          if (stage === "during sync") {
++            const sync = file.sync.bind(file);
++            spyOn(file, "sync").mockImplementationOnce(async () => {
++              await sync();
++              controller.abort(new Cancelled());
++            });
++          }
++          if (stage === "after close") {
++            const close = file.close.bind(file);
++            spyOn(file, "close").mockImplementationOnce(async () => {
++              await close();
++              controller.abort(new Cancelled());
++            });
++          }
++          return writer;
++        },
++      );
++      try {
++        if (stage === "before start") controller.abort(new Cancelled());
++        const result = await execute(input, output, controller.signal);
++        expect(result.code).toBe(130);
++        expect(result.response).toMatchObject({
++          protocolVersion: 2,
++          status: "error",
++          error: { code: "INTERRUPTED" },
++        });
++        if (stage !== "before start") expect(handle?.fd).toBe(-1);
++        expect(await readdir(dir)).toEqual(["input"]);
++      } finally {
++        hook.mockRestore();
++      }
++    });
++  },
++);
++
++test("reader sink awaits accepted events, leaves replay unchanged, and propagates destination errors", async () => {
++  await fixture(async (input) => {
++    const baseline = await readRecording(input);
++    const seen: number[] = [];
++    let started = false;
++    const replay = await readRecording(input, undefined, {
++      async start() {
++        await Bun.sleep(1);
++        started = true;
++      },
++      async append(event) {
++        expect(started).toBe(true);
++        await Bun.sleep(1);
++        seen.push(event.seq);
++      },
++    });
++    expect(replay).toEqual(baseline);
++    expect(seen).toEqual([0, 1]);
++    const failure = new Error("destination stopped");
++    await expect(
++      readRecording(input, undefined, {
++        async start() {},
++        async append() {
++          throw failure;
++        },
++      }),
++    ).rejects.toBe(failure);
++  });
++});
++
++test("canonical recovery does not retain source JSON spelling or synthesize events", async () => {
++  await fixture(async (input, output) => {
++    await writeFile(
++      input,
++      `${headerLine}{ "title":"R\\u0075n", "type":"run.started", "seq":0, "runId":"r", "protocolVersion":2 }\n${finish}\n`,
++    );
++    const result = await execute(input, output);
++    expect(result.code).toBe(0);
++    expect(result.response).toMatchObject({
++      runState: "succeeded",
++      recording: { status: "partial", eventCount: 2 },
++    });
++    expect(await readFile(output, "utf8")).toBe(
++      `${headerLine}${start}\n${finish}\n${trailerLine("partial", 2, 1)}`,
++    );
++  });
++});

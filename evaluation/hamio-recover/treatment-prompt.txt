@@ -1,0 +1,2 @@
+添付の共通課題文と受け入れ契約に従って作業してください。
+追加資料として固定版effectual-change Skill archiveを添付します。hashが一致することを確認し、archive内のSKILL.mdを読んで、そのSkillを今回の変更判断に適用してください。必要なreferenceだけを参照し、readしたpathと判断へ適用した証拠pointerをevidence.jsonに含めてください。Skillは製品リポジトリに追加しないでください。
