@@ -282,15 +282,23 @@ def main() -> int:
     summary = markdown(report)
     (out / "report.md").write_text(summary, encoding="utf-8")
     print("\n" + summary + "\nRun artifacts: " + str(out), flush=True)
-    if args.post_issue:
-        run(["gh", "issue", "comment", "13", "--repo", "9uiLe/effectual-change",
-             "--body-file", str(out / "report.md")])
-    success = all(x["return_code"] == 0 and x["completed"]
-                  and x["base_preserved"]
-                  for x in report["trials"].values())
-    graded = args.skip_grade or all(
-        x["grade"]["return_code"] == 0 for x in report["trials"].values()
+    success = all(
+        x["return_code"] == 0 and x["completed"] and not x["timed_out"]
+        and x["base_preserved"] for x in report["trials"].values()
     )
+    # A failed *candidate* is a valid experiment result. A failed *grader* is not.
+    graded = args.skip_grade or all(
+        x["grade"]["return_code"] in (0, 1)
+        and isinstance(x["grade"].get("passed"), int)
+        and x["grade"].get("total") == 8
+        for x in report["trials"].values()
+    )
+    if args.post_issue:
+        if not success or not graded or args.skip_grade:
+            print("Skipping Issue comment: A/B comparison is incomplete or ungraded.")
+        else:
+            run(["gh", "issue", "comment", "13", "--repo", "9uiLe/effectual-change",
+                 "--body-file", str(out / "report.md")])
     return 0 if success and graded else 1
 
 
