@@ -16,17 +16,27 @@ python3 -m unittest discover -s evaluation/plugin-catalog -p 'test_*.py' -v
 
 必要なツール：**Codex CLI、Git、Python 3.10以上、Docker**（採点器をDocker内で動かすため）。Dockerは起動しておく。GitHubへ結果を投稿する場合だけGitHub CLI（gh）の認証も必要。初回のDocker image buildでは公式Python imageとbash/jqを取得する。外部コンテナイメージのサプライチェーンリスクは残るので、信頼するDockerfileとimageを事前に確認し、厳格な環境ではベースイメージdigestを固定する。
 
+effectual-changeのPR #14の内容を含む作業ツリーで実行：
+
 ~~~bash
-# effectual-changeのPR #14の内容を含む作業ツリーで実行
 python3 evaluation/plugin-catalog/run.py --post-issue
+~~~
 
-# 特定のCodexモデルで揃える場合（利用可能なモデル名に変更）
+特定のCodexモデルで揃える場合（利用可能なモデル名に変更）：
+
+~~~bash
 python3 evaluation/plugin-catalog/run.py --model YOUR_CODEX_MODEL --post-issue
+~~~
 
-# Controlから先に実行する（既定の--order randomとは異なる）
+Controlから先に実行する場合（既定の--order randomとは異なる）：
+
+~~~bash
 python3 evaluation/plugin-catalog/run.py --model YOUR_CODEX_MODEL --order control-first
+~~~
 
-# Treatmentから先に実行する
+Treatmentから先に実行する場合：
+
+~~~bash
 python3 evaluation/plugin-catalog/run.py --model YOUR_CODEX_MODEL --order treatment-first
 ~~~
 
