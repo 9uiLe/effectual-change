@@ -42,12 +42,12 @@
 
 最初の比較課題は、[9uiLe/pluginsでの重複カタログ検出](../evaluation/plugin-catalog/README.md)。既存の検証スクリプトが重複行を見逃す現実の不具合を題材にし、独立した[ブラックボックス採点器](../evaluation/plugin-catalog/grade.py)で正常系・失敗系と既存動作の維持を評価する。
 
-- **第一段階：** 同一モデルの別セッションで1ペア試し、変更差分と検証結果、不要な調査・質問、実行時間を記録する。
-- **追加検証：** 必要に応じて順序を入れ替え、複数ペアで再現性を確認する。同じセッションで両条件を続けない。
-- **解釈：** 受け入れテストの成否と、Skillによる意思決定改善の因果的な証拠を区別する。単発の勝敗を「有効性が実証された」と書かない。
-- **環境制約：** Claude Code / Codex CLIのない環境で採点器を作っただけでは、A/B開発試行を実施したことにはならない。
+- **初回試行の実績：** [Issue #13](https://github.com/9uiLe/effectual-change/issues/13)を完了・クローズ。CodexでSkillなし／ありの独立した試行を複数ペア実施し、観測した範囲では両条件とも独立採点8/8に成功。実装の正しさに差は観測されなかった。
+- **検証基盤：** [PR #14](https://github.com/9uiLe/effectual-change/pull/14)で固定開始コミット・別セッション・Docker内の採点器・実行順序の記録を導入。修正後のローカル実行も確認した。
+- **解釈：** Skillの意思決定改善・効率改善への**因果的寄与はINCONCLUSIVE**。完了時間・トークン数はモデル・実行順序・キャッシュ等の交絡を含む。単一課題で全ケース同点だったことは「有効」とも「無効」とも証明しない。
+- **評価の限界：** 採点器は有限の8ケースのみ。実際のモデル解決先、管理者レベルのSkill露出、他OSの動作の完全な一致は立証していない。採点器とAgent作業環境を分けたことだけで、外部実務にそのまま一般化しない。
 
-実行状況と結果は[Issue #13](https://github.com/9uiLe/effectual-change/issues/13)で追跡する。試行結果が揃うまでは有効性の判断を保留する。
+追加の実務観察は[Issue #3](https://github.com/9uiLe/effectual-change/issues/3)で管理する。次の具体的な課題候補は[Issue #17](https://github.com/9uiLe/effectual-change/issues/17)（SpeakerDeckの本文なしスライドの扱い）。まだAgent実行前であり、実務での意思決定改善が実証されたわけではない。
 
 ## 未解決の論点
 - 5原則を行動選択のための一貫した規則にどう落とすか。
@@ -59,4 +59,4 @@
 
 ## 次の作業
 
-具体的な変更課題で意思決定記録を埋め、原則が「次に何をすべきか」の選択に本当に寄与するかを検証する。成功例だけでなく、適用しないほうがよかったケースも記録する。
+まず[#6](https://github.com/9uiLe/effectual-change/issues/6)の公開インストールと実機発火の未検証事項を確認する。次に[#17](https://github.com/9uiLe/effectual-change/issues/17)など**実在する変更課題**で、[#2](https://github.com/9uiLe/effectual-change/issues/2)の探索停止・重要な未知の判断を観察し、[#3](https://github.com/9uiLe/effectual-change/issues/3)に結果を記録する。成功例だけでなく、適用しないほうがよかったケースも記録し、事実に基づいて必要最小限のSkill改善を検討する。
