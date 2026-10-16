@@ -72,11 +72,35 @@ git -C "$HOME/.local/share/effectual-change" checkout --detach REVIEWED_COMMIT_S
 
 # SKILL.md と参照資料を確認してから配置する
 find "$HOME/.local/share/effectual-change/skills/effectual-change" -type f
+~~~
 
-# この例はユーザー共通（全プロジェクト）への配置
+ユーザー共通（全プロジェクト）に導入する場合、**既存の同名Skillがあれば両方のリンク作成を中止**します。通常の `ln -s SOURCE DEST` は、`DEST` が既存ディレクトリの場合、その中にリンクを作るため、事前に両方の配置先を検査します。壊れたシンボリックリンクも重複として扱います。
+
+~~~bash
+# Safe Skill symlink installation
+set -eu
+
+skill_source="$HOME/.local/share/effectual-change/skills/effectual-change"
+claude_target="$HOME/.claude/skills/effectual-change"
+codex_target="$HOME/.agents/skills/effectual-change"
+
+if [ ! -f "$skill_source/SKILL.md" ]; then
+  printf 'Skill not found: %s\n' "$skill_source" >&2
+  exit 1
+fi
+
 mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
-ln -s "$HOME/.local/share/effectual-change/skills/effectual-change" "$HOME/.claude/skills/effectual-change"
-ln -s "$HOME/.local/share/effectual-change/skills/effectual-change" "$HOME/.agents/skills/effectual-change"
+
+# Preflight BOTH targets before writing EITHER link.
+for target in "$claude_target" "$codex_target"; do
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf 'Skill already exists; refusing to modify: %s\n' "$target" >&2
+    exit 1
+  fi
+done
+
+ln -s "$skill_source" "$claude_target"
+ln -s "$skill_source" "$codex_target"
 ~~~
 
 既存の同名Skillを上書きしないでください。特定のプロジェクトだけに適用する場合は、そのプロジェクトの `.claude/skills/` と `.agents/skills/` に配置します。Gitによる更新時は `git fetch` の後に差分を確認し、承認したコミットへ切り替えてください。アンインストール時は該当するリンクのみ削除し、元のリポジトリを誤って削除しないでください。
