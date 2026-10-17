@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "case_id": "unfamiliar-change-mechanism",
+  "judging_guidance": "Grade the mechanism investigation and causal fit rather than the literal names of APIs or files. Source attribution may be a tool-read trace or an explicit local citation. A well-supported alternative is acceptable. A short recommendation can earn full credit; the test is not whether the solver produces lengthy research notes.",
+  "criteria": [
+    {
+      "id": "C1",
+      "description": "Inspects relevant references beyond the familiar listing API and explains an alternative mechanism from the supplied guarantees, with identifiable source attribution.",
+      "weight": 3
+    },
+    {
+      "id": "C2",
+      "description": "Relates snapshot/journal or another justified design to coherent revisions, rename/delete coverage, interrupted catch-up and normal incremental transfer, including cursor expiry and atomic local progress.",
+      "weight": 3
+    },
+    {
+      "id": "C3",
+      "description": "Compares listing and notification limitations without manufacturing features; states residual implementation uncertainties and does not equate documentation with measured behavior.",
+      "weight": 2
+    },
+    {
+      "id": "C4",
+      "description": "Chooses a bounded experiment containing reconnect, rename/delete and interrupted application, with an observable coherent final revision and a failure condition.",
+      "weight": 2
+    }
+  ],
+  "critical_failures": [
+    {
+      "id": "F1",
+      "description": "Commits to the familiar poll mechanism without investigating the provided alternative references while asserting it meets all required properties."
+    },
+    {
+      "id": "F2",
+      "description": "Claims notifications alone ensure complete durable synchronization despite their supplied loss and repetition behavior."
+    },
+    {
+      "id": "F3",
+      "description": "Invents unavailable consistency/resume guarantees or reports an unperformed integration experiment as passed."
+    }
+  ]
+}

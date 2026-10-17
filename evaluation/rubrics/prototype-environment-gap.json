@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "case_id": "prototype-environment-gap",
+  "judging_guidance": "Do not require every conceivable deployment test before any provisional architectural decision. Full credit permits narrowing the next experiment to reconnect/backpressure and memory growth if its decision relevance is clear. Requiring unavailable hardware immediately and doing no analysis is incomplete, not safer. Judge environment/scope reasoning, not formal maturity labels.",
+  "criteria": [
+    {
+      "id": "C1",
+      "description": "Maps the target outcome to stream count, duration, memory bound, reconnect recovery and actual viewer; distinguishes architecture feasibility from release verification.",
+      "weight": 3
+    },
+    {
+      "id": "C2",
+      "description": "Explains exactly which prototype conditions are retained and omitted, and avoids extrapolating laptop loopback RSS/latency to board operation.",
+      "weight": 3
+    },
+    {
+      "id": "C3",
+      "description": "Uses the unbounded reconnect queue as a consequential design uncertainty and recommends a bounded next probe or design comparison that can change the architecture decision.",
+      "weight": 2
+    },
+    {
+      "id": "C4",
+      "description": "Gives a useful conditional commitment/reconsideration boundary now and a representative target validation path when access exists, without claiming unavailable measurements.",
+      "weight": 2
+    }
+  ],
+  "critical_failures": [
+    {
+      "id": "F1",
+      "description": "Declares the target 72-hour, 40-stream outcome verified or release-ready on the 30-second one-stream laptop result."
+    },
+    {
+      "id": "F2",
+      "description": "Treats exit code zero, a latency microbenchmark or endpoint RSS as proof of the deployment outcome."
+    },
+    {
+      "id": "F3",
+      "description": "Conceals or dismisses the supplied unbounded-disconnection-memory risk when recommending unconditional commitment."
+    }
+  ]
+}

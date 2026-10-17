@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "whole-system-throughput",
+  "title": "Fast parser versus completed batch",
+  "split": "regression",
+  "brief": "Our acceptance target is 500 receipts fully available in the review service within five minutes of dropping a batch into the watched folder. Every receipt must have one correct result linked to its original file; retries must not create duplicate review items. Someone proposed selecting the fastest parser from the microbenchmark. Compare viable whole configurations and recommend a direction, stating what remains unproven. Give the smallest decisive experiment. The supplied fictional measurements and interface notes are all we currently have; no full 500-receipt run has occurred.",
+  "artifacts": [
+    "whole-system-throughput/interfaces-and-measurements.md"
+  ]
+}

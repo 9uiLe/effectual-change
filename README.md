@@ -1,178 +1,105 @@
-# Effectual Change
+# Outcome Harness
 
-**既存ソフトウェアの変更における、不確実性を扱うためのAI意思決定フレームワーク**
+現在は仮称です。製品名の選定後に、技能名と呼び出し名も揃えます。
 
-Effectual Change は、エフェクチュエーションの5原則に着想を得て、AIコーディングエージェントが既存ソフトウェアに変更を加えるとき、「次に何をすべきか」を判断するためのフレームワークを検討するプロジェクトです。
+**ゴールを見失わず、知らない方法を探し、実物の証拠で判断を育てる。**
 
-> 現状理解が不完全なまま、正しい最終設計を最初から決めつけない。既存実装から手段と制約を発見し、変更の損失を限定し、人間と確認し、実験から学びながら、目標に到達する。
+Codex と Claude Code で使う、開発のための AI ハーネスです。入口から必要な技能だけを読み、探索、全体構成の比較、検証、途中再開、手順の改善を進めます。特定のモデル、外部 API、常駐サーバーは必要ありません。
 
-**ステータス：** 議論・検証中の仮説です。エフェクチュエーション理論の公式なソフトウェア開発手法でも、有効性が実証された方法論でもありません。
+人が示した目的と必須制約は維持し、途中の分解や技術選択は仮説として見直します。小さい変更には短い経路を使います。すべての作業で複数案、試作、レビュー、記録一式を要求する方式ではありません。
 
-## 問題設定
+## 導入
 
-現実のプロダクト開発では、新規開発よりも既存機能の追加・修正・改善・移行が頻繁に発生します。
+Python 3.11 以上。macOS / Linux ではリンク導入を利用できます。コピー導入も用意しています。既存プロジェクトへの配置は次の一回です。
 
-たとえば以下の要求です。
+```sh
+git clone https://github.com/9uiLe/effectual-change.git
+cd effectual-change
+python3 scripts/install.py /absolute/path/to/project
+```
 
-- 「この画面に機能を追加したい」
-- 「スクロールのカクツキを改善したい」
-- 「このオンボーディングを特定の属性のユーザーにだけ見せたい」
-- 「この画面をKotlin Multiplatform（KMP）に置き換えたい」
+Codex 用の `.agents/skills/` と Claude Code 用の `.claude/skills/` に、同じ技能一式へのリンクを作ります。元の checkout を更新すると、次に読み込まれる内容も更新されます。既存の同名項目があれば、配置前に全対象を点検して中止します。他の技能や設定は変更しません。
 
-目標はある程度明確でも、実現経路は不明です。担当者自身が、仕様、暗黙の要件、依存関係、歴史的経緯、変更できない制約をすべて把握しているわけではありません。AIも同じです。
+片方だけに入れる場合や、checkout から切り離したコピーを置く場合:
 
-**このフレームワークの目的は、目標をAIが勝手に決め直すことではなく、目標への安全で合理的な到達経路を、調査・実験・合意によって選び直すことです。**
+```sh
+python3 scripts/install.py /absolute/path/to/project --host codex
+python3 scripts/install.py /absolute/path/to/another-project --host claude --mode copy
+```
 
-## 5原則の翻訳
+リンク導入の再実行は同一のリンクを維持します。コピーの更新は既存内容を自動上書きしません。内容を確認してから、配置したコピーを明示的に取り除いて再導入してください。アンインストールは導入した技能のリンクまたはコピーだけを取り除きます。
 
-| エフェクチュエーションの原則 | 既存ソフトウェア変更での問い |
+Claude Code では checkout をセッション専用のプラグインとして読み込む方法もあります。
+
+```sh
+claude --plugin-dir /absolute/path/to/effectual-change
+```
+
+プラグイン経由の呼び出しは `/outcome-harness:outcome-harness`。プロジェクト導入と同時に使って二重に読み込む必要はありません。
+
+## 使う
+
+導入先プロジェクトで、普段の依頼に入口の名前を付けます。
+
+- Codex: `$outcome-harness このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
+- Claude Code: `/outcome-harness このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
+
+自動選択も有効です。実際の選択は各ホストの判断と設定に依存します。ユーザーが JSON の項目を埋めたり、次の技能を毎回選んだりすることは想定していません。主担当 AI が必要な経路を選び、記録とツールを操作します。
+
+| 技能 | 必要になる場面 |
 | --- | --- |
-| **手中の鳥 / Bird in Hand** | 既存のコード・動作・テスト・知識から、何がわかり、何を使えるか？ |
-| **許容可能な損失 / Affordable Loss** | 何を維持し、どの範囲なら変更・実験してよいか？ |
-| **クレイジーキルト / Crazy Quilt** | どの判断には誰の知識・確認・具体的な合意が必要か？ |
-| **レモネード / Lemonade** | 調査・実験での予想外の発見は、設計をどう変えるか？ |
-| **飛行機のパイロット / Pilot in the Plane** | 不確かな将来を予測しすぎず、現在の変更・検証・復旧をどう制御可能にするか？ |
+| `outcome-harness` | 入口、軽い経路と通常経路の選択、再開 |
+| `outcome-explore` | 必要な能力の抽出、未知の方式と適用条件の調査 |
+| `outcome-compare` | 全体構成の比較、最終成果への寄与と負担の判断 |
+| `outcome-verify` | 判断を変える試作、実物の観測、証拠の適用範囲 |
+| `outcome-learn` | 実際の失敗を回帰ケースにし、小さい修正を比較評価 |
 
-詳しくは [原則の解釈と注意点](skills/effectual-change/references/principles.md) を参照してください。
+各技能は sibling のコア資料を参照します。個別のフォルダだけをコピーせず、インストーラーで一式を配置してください。
 
-## 意思決定ループ
+## ハーネスが支えること
 
-1. **観測する：** 既存実装・動作を調べ、事実と仮説を分ける。
-2. **境界を決める：** 維持すべき動作、許容できる変更、停止・復旧条件を整理する。
-3. **次の行動を選ぶ：** 追加調査、最小実験、担当者への確認、設計見直し、実装、停止から選ぶ。
-4. **検証と合意：** 計測値、スクリーンショット、動画、テスト結果などで確かめる。
-5. **更新する：** 新しい発見を反映し、現時点で必要な設計に収束させる。
+```mermaid
+flowchart LR
+  G[原文・ゴール・必須制約] --> A[主担当が次の行動を選ぶ]
+  A --> E[未知の方式を調べる]
+  A --> C[全体構成を比べる]
+  A --> V[実物で確かめる]
+  E --> R[記録・証拠・未確認事項]
+  C --> R
+  V --> R
+  R --> A
+  R --> L[失敗例と未使用ケースで改善を評価]
+  L --> A
+```
 
-この番号は固定の工程順ではありません。状況に応じて繰り返します。
+重要な判断や複数回にまたがる作業では、原文、固定した意図、更新可能な案、証拠を保存します。低リスクな小変更では、元の依頼に沿って変更し、相応の確認をして終えます。
 
-詳細は [意思決定ループ](skills/effectual-change/references/decision-loop.md) に記述しています。
+含まれるローカルツールは、要求に実現手段がないこと、対応する検証がないこと、意図の事後変更、実行証拠の不足や不整合、単体・別環境の測定を全体成立に読み替えることを点検します。未確認の部分を残した条件付き判断も扱います。
 
-## まず試す
+実行は `capture` で保存できます。終了コード 0 から合格を自動推定せず、実行時の実験条件・出力と、エージェントが行った判定を区別します。再開時には `next` と `checkpoint` を使います。コマンドと記録形式は [実行と再開](skills/outcome-harness/references/workflow.md) と [記録形式](skills/outcome-harness/references/record-format.md) にあります。
 
-[変更意思決定記録テンプレート](skills/effectual-change/assets/change-decision.md) に対象タスクを当てはめ、現状・未知・変更範囲を記録します。AIへの基本的な方針には [エージェント向け運用ガイド](skills/effectual-change/references/agent-playbook.md) を利用できます。
+チェックはホストの権限や実行を強制するフックではなく、エージェントが利用する検査です。ダイジェストはローカルファイルの変更を検出しますが、内容の真正性や、操作が意味上成功したことまでは保証しません。原文からの別文脈での読み直しと、実物の観測を併用します。
 
+## 育てる
 
-## Agent Skill
+実際の失敗の原文と証拠から、限定した改善仮説を作ります。変更前後を同じ条件で比較し、重要な失敗、単純作業での過剰な手順、時間や費用も確認します。全体の平均点が上がっても、重大な失敗が残る変更は採用候補にしません。
 
-Claude Code と Codex で共有できる **Agent Skills形式のSkill** を提供します。入口は [SKILL.md](skills/effectual-change/SKILL.md)、詳細は `references/`、任意の記録テンプレートは `assets/` にあります。Skillとしてインストールするのは `skills/effectual-change/` ディレクトリだけで、npmパッケージや実行スクリプトは不要です。
+6 個の合成ケースと、解答者へ採点基準を渡さない評価用パケット生成器を用意しています。ケースには明示要件の欠落、局所最適、未知の方式、環境差、小変更への過剰手順、別分野への転用が含まれます。詳細は [評価と改善](docs/evaluation.md) を参照してください。
 
-### 使い方
-
-既存のコードベースで変更を依頼するときに使用します。Claude Codeでは `/effectual-change`、Codexでは `$effectual-change` で明示的に呼び出せます。発見・自動起動は各製品の設定とSkillの説明文に依存します。
-
-このSkillは「設計方針の相談のみ」で止めるものではありません。コード変更が依頼されている場合は既存コードとリスクを調べた上で、実装・検証まで進めます。担当者しか決められない仕様は、根拠とともに確認します。
-
-### セキュリティ重視の導入（Git）
-
-外部のnpm CLIを実行せず、内容を確認したGitコミットから導入する例です（macOS / Linux）。`REVIEWED_COMMIT_SHA`は実際に監査したコミットSHAに置き換えてください。リポジトリはPublicなので、通常のHTTPS読み取りに特別なGitHub認証は不要です。
-
-配置前に `SKILL.md` と参照資料を確認してください。
-
-~~~bash
-git clone https://github.com/9uiLe/effectual-change.git "$HOME/.local/share/effectual-change"
-git -C "$HOME/.local/share/effectual-change" checkout --detach REVIEWED_COMMIT_SHA
-
-find "$HOME/.local/share/effectual-change/skills/effectual-change" -type f
-~~~
-
-ユーザー共通（全プロジェクト）に導入する場合、**既存の同名Skillがあれば両方のリンク作成を中止**します。通常の `ln -s SOURCE DEST` は、`DEST` が既存ディレクトリの場合、その中にリンクを作るため、事前に両方の配置先を検査します。壊れたシンボリックリンクも重複として扱います。
-
-<!-- safe-skill-symlink-install -->
-~~~bash
-(
-  set -eu
-
-skill_source="$HOME/.local/share/effectual-change/skills/effectual-change"
-claude_target="$HOME/.claude/skills/effectual-change"
-codex_target="$HOME/.agents/skills/effectual-change"
-
-if [ ! -f "$skill_source/SKILL.md" ]; then
-  printf 'Skill not found: %s\n' "$skill_source" >&2
-  exit 1
-fi
-
-for target in "$claude_target" "$codex_target"; do
-  if [ -e "$target" ] || [ -L "$target" ]; then
-    printf 'Skill already exists; refusing to modify: %s\n' "$target" >&2
-    exit 1
-  fi
-done
-
-mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
-ln -s "$skill_source" "$claude_target"
-ln -s "$skill_source" "$codex_target"
-)
-~~~
-
-既存の同名Skillを上書きしないでください。特定のプロジェクトだけに適用する場合は、そのプロジェクトの `.claude/skills/` と `.agents/skills/` に配置します。Gitによる更新時は `git fetch` の後に差分を確認し、承認したコミットへ切り替えてください。アンインストール時は該当するリンクのみ削除し、元のリポジトリを誤って削除しないでください。
-
-### CLIによる簡易導入（任意）
-
-[Vercel skills CLI](https://github.com/vercel-labs/skills) のインストール機能も利用できます。以下のコマンドは**外部CLIと依存コードを実行する**ため、組織のセキュリティポリシーに合わせてCLIの提供元・バージョン・依存を確認してください。未確認の最新版を無条件に実行せず、監査済みバージョンを明示してください。
-
-監査したCLIのバージョン番号に置き換えてください。
-
-~~~bash
-SKILLS_CLI_VERSION=REVIEWED_CLI_VERSION
-~~~
-
-npmの場合：
-
-~~~bash
-npx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
-~~~
-
-pnpmの場合：
-
-~~~bash
-pnpm dlx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
-~~~
-
-既定ではプロジェクト単位。ユーザー共通にする場合は `-g` を指定します。npmとpnpmのどちらかが一律に安全というわけではありません。導入後は各製品のSkill配置先に `SKILL.md` と参照資料が揃っているかを確認してください。これらのCLIによるインストールと実機での起動は、現時点で未検証です。
-
-### Skillの検証
-
-Python標準ライブラリのみで、Skillのfrontmatter・参照ファイル・自己完結性と、手動インストール時の既存Skillとの衝突防止を検査できます。frontmatterは汎用YAMLパーサーではなく、`name`と`description`をそれぞれ単一行・引用符なしの文字列に限定した形式として検証します。将来frontmatterの記法を拡張する場合はテストも更新してください。
-
-~~~bash
+```sh
 python3 -m unittest discover -s tests -v
-~~~
+python3 evaluation/evaluate.py validate
+python3 -m unittest discover -s evaluation -p 'test_*.py' -v
+```
 
-このテストでは、READMEの**実際のインストール用シンボリックリンク手順**を隔離した一時HOMEで実行し、`skills/effectual-change/`内の全参照資料がClaude Code (`.claude/skills/`) とCodex (`.agents/skills/`) の両方から読めることを確認します。また、実際のSkillディレクトリだけを各プロジェクトへコピーした場合の同一性・Markdown相対リンクも検査します。GitHub Actionsの`validate`ジョブでも自動実行します（OSはUbuntu）。
+これらは構造と実行ツールの検査です。初版の実行結果と、Claude Code の認証切れによる動作確認の制限は [検証記録](docs/validation.md) にあります。技能による意思決定の改善効果は、別途、比較可能なエージェントの行動評価で確かめます。実行記録には元の依頼やコマンド出力が入るため、案件の保存方針に従って管理してください。
 
-**別途実機確認が必要な範囲：** Public GitHubからのClone、Claude CodeとCodexによる実際のSkill発見・明示起動・自動起動、外部`skills` CLIの導入結果、Windows上での配置。CIのファイル検査が成功しても、エージェントのSkill起動や意思決定改善が確認できたことにはなりません。結果は[Issue #6](https://github.com/9uiLe/effectual-change/issues/6)で追跡します。
+## 設計と出典
 
-**検証できる範囲：** 限定的なfrontmatter文法、ファイル構造、リンクの静的整合性、および隔離環境でのリンク競合防止。汎用YAML仕様への準拠は保証しないため、公開前には[Agent Skills公式の検証方法](https://agentskills.io/specification#validation)（例：`skills-ref validate skills/effectual-change`）との照合も行ってください。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
+[pstack](https://github.com/cursor/plugins/tree/main/pstack) の入口による振り分け、実物の検証、振り返りから着想を得ています。文章・コードの移植は行わず、独自に実装しています。
 
+NASA の要求追跡・全体設計・実証環境の区別、SEI の設計前の QAW と設計案を評価する ATAM を、必要な問いとして取り入れています。公式手順への準拠や、網羅性・全体最適の保証を表すものではありません。[出典と適用範囲](skills/outcome-harness/references/sources.md)、[設計上の判断](docs/design.md) を参照してください。
 
-## 大切な区別
-
-- **観測事実 ≠ 正しい仕様：** コードがそう動いていても、意図された要件とは限りません。
-- **予想外の発見 ≠ なんでも採用：** 発見は再現・検証して設計判断に利用します。
-- **人間への提示 ≠ 合意：** 明示的な受け入れ条件や判断の記録が必要です。
-- **将来を予測しすぎない ≠ 保守性を犠牲にする：** 現在のテスト可能性、低結合、段階移行、復旧可能性は重視します。
-- **AIに任せる ≠ AIが全権を持つ：** セキュリティ、プライバシー、データ破壊、既存のレビュー・承認ルールを優先します。
-
-## 評価・改善
-
-現時点で効果は未検証です。[評価計画と未解決の論点](docs/evaluation.md) に従って、実際の変更タスクを使い、従来の開発プロセスとの差を調べていきます。反例も歓迎します。
-
-実在するscope-guard不具合を対象にした[独立DevinセッションのSkillなし／あり比較](docs/scope-guard-devin-comparison.md)では、開始条件・実行証拠・固定テストによる採点と限界を記録しています。
-
-より大きな[hamio Recording復旧CLIの独立比較](docs/hamio-recover-devin-comparison.md)では、両条件が固定の機能・回帰検査を満たした一方、追加テスト込みの補助検査には未解決のTTY timeoutの差がありました。一般的な有効性の結論はINCONCLUSIVEです。
-
-## 理論的背景と出典
-
-エフェクチュエーションは、起業家の意思決定についてSaras D. Sarasvathyが提唱した理論です。元の文脈では、手段、許容可能な損失、他者のコミットメント、偶然の活用、未来へのコントロールが重要です。本プロジェクトはその**独自の応用**です。原義との対応・ずれ、適用しにくいケース、既存手法との違い（仮説）は[原義と適用範囲](docs/theory.md)に整理しています。
-
-- [Sarasvathy (2001), *Causation and Effectuation*, Academy of Management Review](https://doi.org/10.5465/amr.2001.4378020)
-- [Effectuation.org: The Five Principles of Effectuation](https://effectuation.org/the-five-principles-of-effectuation-detail)
-- [Effectuation.org: Effectuation 101](https://effectuation.org/effectuation-101)
-
-## 開発・問い合わせについて
-
-このプロジェクトは**単独メンテナーによる開発**を想定しており、外部からのIssue・Pull Requestによる変更提案は受け付けていません。公開コードの閲覧・利用・フォークはMITライセンスに従って行えます。GitHub側ではIssueとPull Requestの作成範囲をCollaborators onlyに制限します。
-
-## ライセンス
+Effectual Change の実装を置き換えた構成です。旧実装と旧評価の履歴は Git に残っています。
 
 [MIT License](LICENSE) — Copyright (c) 2026 9uiLe.

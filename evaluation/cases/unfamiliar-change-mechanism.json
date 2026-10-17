@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "unfamiliar-change-mechanism",
+  "title": "Reconnect-safe catalog cache",
+  "split": "regression",
+  "brief": "Design a local cache for the fictional Arcstore photo catalog. After a laptop reconnects, its visible names and membership must converge to one coherent catalog revision, including renames and deletes, without repeatedly downloading the full catalog during normal operation. An interrupted catch-up must resume safely. Our existing prototype polls listAll because that is the API the team knows. Investigate the supplied reference corpus before committing to that mechanism, compare a plausible alternative and give the next experiment. Treat the corpus as the complete authoritative product documentation for this exercise; actual internet results about similarly named products do not apply. No integration experiment has run.",
+  "artifacts": [
+    "unfamiliar-change-mechanism/reference-index.md",
+    "unfamiliar-change-mechanism/api-listing.md",
+    "unfamiliar-change-mechanism/api-journal.md",
+    "unfamiliar-change-mechanism/api-events.md"
+  ]
+}

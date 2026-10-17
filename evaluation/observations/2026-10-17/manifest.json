@@ -1,0 +1,54 @@
+{
+  "kind": "unpaired_smoke_observations",
+  "behavioral_improvement_measured": false,
+  "evaluator_verdicts": false,
+  "observations": [
+    {
+      "case": "whole-system-throughput",
+      "host": "native separate-context subagent",
+      "artifact": "whole-system-throughput.md",
+      "sha256": "bbb1fb430cf2b161e1597a32ebf692b76c673efcd97394c257ab562e6c431921",
+      "full_transcript_retained_here": false,
+      "usage": null
+    },
+    {
+      "case": "unfamiliar-change-mechanism",
+      "host": "native separate-context subagent",
+      "artifact": "unfamiliar-change-mechanism.md",
+      "sha256": "f2e478dd79be5e2517b51a4bef68622e436db9f82dc5bd2a84168a6b3d9f6462",
+      "full_transcript_retained_here": false,
+      "usage": null
+    },
+    {
+      "case": "simple-label-edit",
+      "host": "native separate-context subagent",
+      "artifact": "simple-label-edit.md",
+      "sha256": "8e10d64753db37bd4b24708d1711d3e53adefc002cceb7f9b6a6aad552be0aee",
+      "full_transcript_retained_here": false,
+      "usage": null
+    },
+    {
+      "case": "arrival-action-verification",
+      "host": "codex-cli 0.163.0",
+      "artifact": "arrival-action-verification.md",
+      "sha256": "b9a1f7ffb16398b456e6f247940017eaa08ef0cb7bd8ad802483de58bb99e793",
+      "normalization": "Local product-note link replaced with repository-relative link; response text otherwise unchanged.",
+      "full_transcript_retained_here": false,
+      "usage": {
+        "input_tokens": 92369,
+        "cached_input_tokens": 76800,
+        "output_tokens": 2196,
+        "reasoning_output_tokens": 1275,
+        "cost_usd": null
+      }
+    }
+  ],
+  "claude_live_smoke": {
+    "version": "2.1.301",
+    "status": "authentication_failed_before_model_execution",
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_usd": 0,
+    "message": "OAuth session expired and could not be refreshed"
+  }
+}

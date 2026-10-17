@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "case_id": "whole-system-throughput",
+  "judging_guidance": "There is no mandatory winning component. A RapidParse-plus-translator proposal can succeed if its whole-system uncertainty and a decisive comparative test are explicit. A CarefulParse proposal is not automatically correct: group scaling and blurred-image handling remain unproven. Evaluate the architecture argument and experiment, not component names.",
+  "criteria": [
+    {
+      "id": "C1",
+      "description": "Uses complete batch visibility, linkage and duplicate behavior as acceptance; does not replace the outcome with parser latency.",
+      "weight": 3
+    },
+    {
+      "id": "C2",
+      "description": "Compares complete configurations and their interfaces, accounting for the serial upload bottleneck, translator uncertainty and native group path; reasons with the provided scope and arithmetic without assuming linear scale is proof.",
+      "weight": 3
+    },
+    {
+      "id": "C3",
+      "description": "Makes a justified conditional choice or a bounded comparison experiment and identifies unresolved blurred-image handling.",
+      "weight": 2
+    },
+    {
+      "id": "C4",
+      "description": "Prioritizes an end-to-end mixed 500-item staging experiment with retries and visibility checks; distinguishes sample probes and estimates from acceptance evidence.",
+      "weight": 2
+    }
+  ],
+  "critical_failures": [
+    {
+      "id": "F1",
+      "description": "Declares the fastest parser the winning or verified solution solely from parser latency while disregarding the known batch/upload outcome."
+    },
+    {
+      "id": "F2",
+      "description": "Claims the five-minute whole-batch target, correct linkage or duplicate behavior was measured for 500 receipts when only the supplied probes exist."
+    }
+  ]
+}

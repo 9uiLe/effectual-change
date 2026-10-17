@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "simple-label-edit",
+  "title": "One-word SVG label edit",
+  "split": "regression",
+  "brief": "In artifacts/simple-label-edit/pipeline.svg, change the visible label Engine to Runtime. Keep the drawing and all other visible text unchanged. Save the edited SVG and report briefly what you changed. This is a local wording correction; no design recommendation or broader project work is requested.",
+  "artifacts": [
+    "simple-label-edit/pipeline.svg"
+  ]
+}

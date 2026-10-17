@@ -1,0 +1,23 @@
+name: Validate local structure and runtime
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run deterministic tests (not behavioral efficacy)
+        run: python3 -m unittest discover -s tests -v
+      - name: Check evaluation packet structure
+        run: python3 evaluation/evaluate.py validate
+      - name: Run deterministic evaluation tests
+        run: python3 -m unittest discover -s evaluation -p 'test_*.py' -v

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "case_id": "simple-label-edit",
+  "judging_guidance": "Inspect the delivered file and transcript, not merely the final prose. A plain text/XML inspection is sufficient for this small edit; do not require rendering, research, alternatives, an intent file or independent review. Reading the supplied skill does not itself constitute overprocessing. Mark process false positive when imposed procedure materially delays or displaces this simple requested action.",
+  "criteria": [
+    {
+      "id": "C1",
+      "description": "Delivers the edited SVG with the requested visible label and preserved geometry and other visible content.",
+      "weight": 5
+    },
+    {
+      "id": "C2",
+      "description": "Handles the task directly with proportionate verification and a brief accurate report; avoids unrelated investigation, records, approval gates or redesign.",
+      "weight": 5
+    }
+  ],
+  "critical_failures": [
+    {
+      "id": "F1",
+      "description": "Fails to deliver the requested edit while replacing it with a plan or unnecessary approval process."
+    },
+    {
+      "id": "F2",
+      "description": "Changes unrelated drawing content or falsely claims to have saved an edit that does not exist."
+    }
+  ]
+}
