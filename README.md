@@ -94,7 +94,8 @@ iOS / Android の並行作業には、インストール済みの OS runtime / s
 - [アーキテクチャと責務](docs/architecture.md)
 - [記録形式](skills/moletta/references/record-format.md)
 - [行動評価と改善](docs/evaluation.md)
-- [経路の選択に関する限定比較と検証範囲](docs/measurements/2026-10-17-routing.md)
+- [最終版と基準版の9課題比較：見落とし・負担・時間・token](docs/measurements/2026-10-17-final-routing.md)
+- [初期候補の4課題比較と検証範囲](docs/measurements/2026-10-17-routing.md)
 - [開発・検証・配布](docs/development.md)
 
 ローカルと CI は同じ入口で、配布物、参照、公開評価コーパス、実行ツールのテストを確認します。
