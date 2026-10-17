@@ -4,6 +4,8 @@ Moletta は、明示して選んだローカルの数値測定ファイルを読
 
 ## コマンドと保持範囲
 
+保存には [実行と再開](workflow.md) の `init` が返す RUN を使う。集計・比較の保存だけなら、意図の封印や設計計画・観測の全体検証は不要である。数値処理の成功を製品の性能や成果の合格観測へ読み替えない。
+
 ```sh
 python3 skills/moletta/scripts/moletta.py metrics summarize RUN \
   --input measurements.csv --format csv

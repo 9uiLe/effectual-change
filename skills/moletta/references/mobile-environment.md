@@ -6,6 +6,8 @@
 
 CLI の場所を `MOLETTA`、初期化済みの作業記録を `RUN` として示す。
 
+割当を使う場合だけ、[実行と再開](workflow.md) の `init` で保存先を用意する。端末 receipt の保存だけに意図の封印や設計計画は不要である。構造化観測も保存する場合は、その計画・観測契約を別に満たす。どちらも所有・回収は必須で、未解放を完了扱いにしない。
+
 ```sh
 python3 "$MOLETTA" device inspect ios
 python3 "$MOLETTA" device inspect android --sdk /absolute/path/to/Android/sdk
@@ -56,7 +58,7 @@ Android のポートは registry の予約と実際の空き確認を併用す�
 
 iOS は registry に記録した UDID と専用名の一致を確認し、その UDID だけを shutdown／delete する。Android はポートが使用中なら、その serial に問い合わせた AVD 名が専用名と一致する場合だけ対象の `emu kill` を送る。プロセスの終了を確認してから、所有 marker が一致する専用ディレクトリだけを削除する。別 AVD、名前の変更、開始途中のプロセス、所有不整合、ツール接続不能では削除を保留する。`shutdown all`、`delete all`、`delete unavailable`、`killall`、`adb kill-server` は実行しない。
 
-端末作成前に所有記録を保存するので、作成途中の失敗は専用名／専用ディレクトリから回収できる。失敗直後に解放を試み、回収できない lease を残す。再開時は `device status RUN` と通常の `next` で未解放を確認する。
+端末作成前に所有記録を保存するので、作成途中の失敗は専用名／専用ディレクトリから回収できる。失敗直後に解放を試み、回収できない lease を残す。再開時は `device status RUN` で未解放を確認し、`device release` で回収する。構造化観測の記録が準備済みなら `next` でも未解放の処理を提示する。端末の保存だけの RUN に、`next` のための封印や設計計画を追加しない。
 
 ```sh
 python3 "$MOLETTA" device gc

@@ -1,0 +1,583 @@
+{
+  "report_kind": "bounded_paired_instruction_comparison_summary",
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "is_evaluator_grade_report": false,
+  "language": "ja",
+  "source_snapshot": {
+    "baseline_revision": "de5c1c6a88160718cb7b0937e49d4f86ec99fa1d",
+    "a_label": "基準版A（凍結した現行）",
+    "b_label": "初期の指示軽量化候補B",
+    "final_label": "この変更に含まれる、文書整合を確認した指示",
+    "initial_pair_diff": "4 SKILL.md instruction files only; runtime and reference files unchanged",
+    "final_is_identical_to_measured_b": false,
+    "final_differences": "Low-risk/success routing qualification and storage/helper/optional-ledger documentation coherence; no runtime, API, schema or gate changes.",
+    "post_forward_freeze_change": "One device-resumption sentence qualified: helper-only runs use device status/release; next applies to structured observation runs. No device operations exercised in the forward checks."
+  },
+  "provenance": {
+    "initial_suite_manifest_sha256": "3a272477612a6d23a247ae4b83f3c5a1c2c3dd46bb694d2ce01a7226d32a648c",
+    "bundle_manifest_sha256": "22ce78d50b4f087912905e934d143a6803da84be78a876a5f18fdcc0c8a6d67c",
+    "runner_sha256": "5f6d402f6664f50a49d12c1c85b523c84689c5ddfea1d78d6236b858bac9aa65",
+    "control_prompt_sha256": "de498a6a73ca2dc7c2d0aa42d4c683f641285b4a91f8c8009083a05e4252458f",
+    "final_forward_skill_manifest_sha256": "6a43bc0acd6a398b55d6b66ac7e020bee0a93cae6af36a43091b14ac848607a7",
+    "forward_suite_manifest_sha256": "dc0d701052aead6045eac3cf75b6993811a7d256c4ecc194a6752164ce4a8cca",
+    "forward_judgment_sha256": "4b8e2373caccd3bed81b8c4484e01dd320d8744e530b373d0a718466ee125810",
+    "entry_skill_sha256": {
+      "a": "62085755dce185a89e3cc9ee6f65368173a8700532396cf22c5d7ad9c27cd5a8",
+      "b": "57c9e3ec1a188875f5419cdfc28c9143ab5e17e18841e7148e7b1cb3579a7be6"
+    },
+    "public_pack_scope": "Sanitized summary only; raw native CLI logs, complete transcripts and private execution context remain in local work storage. This is not a full reproduction/verdict evidence pack."
+  },
+  "controls": {
+    "host": "Codex CLI 0.163.0",
+    "model": "gpt-6-sol",
+    "reasoning_effort": "high",
+    "ignore_user_config": true,
+    "sandbox": "workspace-write",
+    "security_policy_preserved": true,
+    "same_prompt_artifacts_tools_settings_per_pair": true,
+    "task_language": "English synthetic task packets; not a live Japanese conversation or human usability study",
+    "runs_per_arm_per_case": 1,
+    "fresh_thread_per_case_arm": true,
+    "sequential_pair_order": [
+      "AB",
+      "BA",
+      "AB",
+      "BA"
+    ],
+    "case_4_actual_resumed_turns": 2,
+    "wall_cap_per_turn_seconds": 360,
+    "hard_token_cap": null,
+    "solver_network_or_web_tools": false,
+    "devices": false,
+    "subagents_in_solver_runs": false,
+    "normal_host_model_provider_communication": true,
+    "read_boundary_os_enforced": false,
+    "server_weight_identity_authenticated": false,
+    "cache_and_server_timing_controlled": false
+  },
+  "normalization": {
+    "thread_usage": "Native counters are cumulative across resumed turns in these traces; each task/arm uses its final thread total. Per-turn values are differences, never summed cumulative totals.",
+    "cached_input_is_subset_of_input": true,
+    "reasoning_output_is_subset_of_output": true,
+    "cost_usd": null,
+    "excluded_work": "Experiment setup, case authoring, independent grading, operator work, report preparation, subsequent implementation and final forward checks are excluded from the four-pair totals."
+  },
+  "cases": [
+    {
+      "id": "01-arrival",
+      "title_ja": "一回のタップ成功から、30日間の無人運用を判断する",
+      "finding_ja": "ロック・クラッシュ・再起動と保存結果の照合を含め、既存の手段で成立しない条件を両版が検出。",
+      "turns_per_arm": 1,
+      "arms": {
+        "a": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 50.227,
+          "usage": {
+            "input_tokens": 170540,
+            "cached_input_tokens": 150400,
+            "output_tokens": 2985,
+            "reasoning_output_tokens": 1300,
+            "noncached_input_tokens": 20140,
+            "total_tokens": 173525
+          },
+          "command_events": 11,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 0,
+            "ordinary_tool_issue_events": 1
+          }
+        },
+        "b": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 47.866,
+          "usage": {
+            "input_tokens": 116329,
+            "cached_input_tokens": 104064,
+            "output_tokens": 2825,
+            "reasoning_output_tokens": 1310,
+            "noncached_input_tokens": 12265,
+            "total_tokens": 119154
+          },
+          "command_events": 5,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 0,
+            "ordinary_tool_issue_events": 0
+          }
+        }
+      },
+      "candidate_change_percent": {
+        "wall_seconds": -4.701,
+        "total_tokens": -31.333
+      },
+      "candidate_time_and_tokens_increased": false
+    },
+    {
+      "id": "02-system-comparison",
+      "title_ja": "部品ではなく、保存・復旧を含む全体案を比べる",
+      "finding_ja": "架空の二方式について結合・表示・停電後の保存・費用を合算。両版が必須条件に合う全体案を推奨。",
+      "turns_per_arm": 1,
+      "arms": {
+        "a": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 44.498,
+          "usage": {
+            "input_tokens": 172948,
+            "cached_input_tokens": 152832,
+            "output_tokens": 2885,
+            "reasoning_output_tokens": 976,
+            "noncached_input_tokens": 20116,
+            "total_tokens": 175833
+          },
+          "command_events": 12,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 0,
+            "ordinary_tool_issue_events": 1
+          }
+        },
+        "b": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 39.558,
+          "usage": {
+            "input_tokens": 150805,
+            "cached_input_tokens": 135680,
+            "output_tokens": 2310,
+            "reasoning_output_tokens": 605,
+            "noncached_input_tokens": 15125,
+            "total_tokens": 153115
+          },
+          "command_events": 5,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 0,
+            "ordinary_tool_issue_events": 1
+          }
+        }
+      },
+      "candidate_change_percent": {
+        "wall_seconds": -11.102,
+        "total_tokens": -12.92
+      },
+      "candidate_time_and_tokens_increased": false
+    },
+    {
+      "id": "03-tiny-edit",
+      "title_ja": "空白だけの入力を扱う小変更を完了する",
+      "finding_ja": "両版が必要な修正と確認を完了。日付検証や依存追加を持ち込まない。候補Bは時間・総tokenが増加。",
+      "turns_per_arm": 1,
+      "arms": {
+        "a": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 27.458,
+          "usage": {
+            "input_tokens": 157526,
+            "cached_input_tokens": 146816,
+            "output_tokens": 1706,
+            "reasoning_output_tokens": 232,
+            "noncached_input_tokens": 10710,
+            "total_tokens": 159232
+          },
+          "command_events": 7,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 0,
+            "ordinary_tool_issue_events": 1
+          }
+        },
+        "b": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 30.066,
+          "usage": {
+            "input_tokens": 159023,
+            "cached_input_tokens": 139264,
+            "output_tokens": 1825,
+            "reasoning_output_tokens": 376,
+            "noncached_input_tokens": 19759,
+            "total_tokens": 160848
+          },
+          "command_events": 9,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 0,
+            "ordinary_tool_issue_events": 2
+          }
+        }
+      },
+      "candidate_change_percent": {
+        "wall_seconds": 9.498,
+        "total_tokens": 1.015
+      },
+      "candidate_time_and_tokens_increased": true
+    },
+    {
+      "id": "04-correction",
+      "title_ja": "人の後続訂正に、同じ会話の中で従う",
+      "finding_ja": "実際の2ターンで要望の訂正を受け、CSVから J104 / J108 を正しく抽出。候補Bは時間・総tokenが増加。",
+      "turns_per_arm": 2,
+      "arms": {
+        "a": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 50.537,
+          "usage": {
+            "input_tokens": 235612,
+            "cached_input_tokens": 219008,
+            "output_tokens": 3186,
+            "reasoning_output_tokens": 747,
+            "noncached_input_tokens": 16604,
+            "total_tokens": 238798
+          },
+          "command_events": 11,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 1,
+            "ordinary_tool_issue_events": 2
+          }
+        },
+        "b": {
+          "score": 8,
+          "maximum": 8,
+          "critical_failures": [],
+          "wall_seconds": 55.636,
+          "usage": {
+            "input_tokens": 265991,
+            "cached_input_tokens": 247936,
+            "output_tokens": 3602,
+            "reasoning_output_tokens": 1054,
+            "noncached_input_tokens": 18055,
+            "total_tokens": 269593
+          },
+          "command_events": 12,
+          "counted_burden": {
+            "unnecessary_clarification_requests": 0,
+            "unnecessary_approval_requests": 0,
+            "justified_human_value_decision_requests": 0,
+            "solver_record_or_schema_repairs": 0,
+            "unrelated_work_actions": 0,
+            "unrelated_final_files": 0,
+            "ordinary_tool_retries_or_recoveries": 1,
+            "ordinary_tool_issue_events": 2
+          }
+        }
+      },
+      "candidate_change_percent": {
+        "wall_seconds": 10.09,
+        "total_tokens": 12.896
+      },
+      "candidate_time_and_tokens_increased": true
+    }
+  ],
+  "totals": {
+    "a": {
+      "wall_seconds": 172.72,
+      "usage": {
+        "input_tokens": 736626,
+        "cached_input_tokens": 669056,
+        "output_tokens": 10762,
+        "reasoning_output_tokens": 3255,
+        "noncached_input_tokens": 67570,
+        "total_tokens": 747388
+      },
+      "command_events": 41,
+      "score": 32,
+      "maximum": 32,
+      "counted_burden": {
+        "unnecessary_clarification_requests": 0,
+        "unnecessary_approval_requests": 0,
+        "justified_human_value_decision_requests": 0,
+        "solver_record_or_schema_repairs": 0,
+        "unrelated_work_actions": 0,
+        "unrelated_final_files": 0,
+        "ordinary_tool_retries_or_recoveries": 1,
+        "ordinary_tool_issue_events": 5
+      },
+      "human_minutes": null,
+      "cost_usd": null
+    },
+    "b": {
+      "wall_seconds": 173.126,
+      "usage": {
+        "input_tokens": 692148,
+        "cached_input_tokens": 626944,
+        "output_tokens": 10562,
+        "reasoning_output_tokens": 3345,
+        "noncached_input_tokens": 65204,
+        "total_tokens": 702710
+      },
+      "command_events": 31,
+      "score": 32,
+      "maximum": 32,
+      "counted_burden": {
+        "unnecessary_clarification_requests": 0,
+        "unnecessary_approval_requests": 0,
+        "justified_human_value_decision_requests": 0,
+        "solver_record_or_schema_repairs": 0,
+        "unrelated_work_actions": 0,
+        "unrelated_final_files": 0,
+        "ordinary_tool_retries_or_recoveries": 1,
+        "ordinary_tool_issue_events": 5
+      },
+      "human_minutes": null,
+      "cost_usd": null
+    }
+  },
+  "candidate_change_percent": {
+    "wall_seconds": 0.235,
+    "total_tokens": -5.978,
+    "noncached_input_tokens": -3.502,
+    "output_tokens": -1.858
+  },
+  "judging": {
+    "intended_blind_labels": "x/y; mapping not intentionally supplied",
+    "fully_blind": false,
+    "blind_limitation": "Residual a/b identifiers remained in absolute output-link path metadata. Arm labels were incomplete concealment; no private paths are copied into this public summary.",
+    "rubric_withheld_from_solver": true,
+    "independent_solver_context": true,
+    "judge_kind": "AI, same model family; not a human participant study",
+    "maximum_per_arm": 32,
+    "critical_failures_observed": 0,
+    "extra_mechanical_check": {
+      "per_arm_function_examples": 8,
+      "per_arm_cli_examples": 6,
+      "passed": true,
+      "timing": "main agent after solver completion; separate from original solver checks"
+    },
+    "evaluator_metadata_erratum": "Case 3 permitted source edit was initially mislabeled input unchanged; corrected for both arms. Solver artifacts and rubric unchanged; original successful Python events supplied to resolve an evidence gap. Not counted as a solver record repair."
+  },
+  "human_burden_limits": {
+    "counted_proxy": "Unnecessary clarification/approval requests, record repairs and imposed unrelated work visible in the run records.",
+    "human_minutes": null,
+    "ordinary_tool_issues_are_not_human_intervention": true,
+    "prescribed_case_4_second_turn_is_not_burden": true,
+    "full_successful_retry_count": null
+  },
+  "initial_record_routing": "No RUN created in either arm of the four initial tasks; this comparison shows no reduction of record/schema repair burden.",
+  "forward_checks": {
+    "kind": "completion checks of final instruction snapshot; not paired efficacy or cost comparison",
+    "cases": [
+      {
+        "id": "A-retention",
+        "exit_code": 0,
+        "timeout": false,
+        "original_inputs_unchanged": true
+      },
+      {
+        "id": "B-metrics",
+        "exit_code": 0,
+        "timeout": false,
+        "original_inputs_unchanged": true
+      }
+    ],
+    "independent_judgment_available": true,
+    "judgment_summary": {
+      "checks_passed": 6,
+      "checks_total": 6,
+      "tasks": [
+        {
+          "id": "A-retention",
+          "result": "pass",
+          "checks": [
+            {
+              "id": "scope_and_consequence",
+              "status": "pass"
+            },
+            {
+              "id": "bounded_supported_recommendation",
+              "status": "pass"
+            },
+            {
+              "id": "validation_and_scope",
+              "status": "pass"
+            }
+          ],
+          "critical_failures": [],
+          "limits": [
+            "Fictional contract and exact small inventory support plan calculations only. No storage release, retention operation, runtime timing, recovery or real retrieval was executed or established."
+          ]
+        },
+        {
+          "id": "B-metrics",
+          "result": "pass",
+          "checks": [
+            {
+              "id": "actual_existing_helper_output",
+              "status": "pass"
+            },
+            {
+              "id": "numbers_and_provenance",
+              "status": "pass"
+            },
+            {
+              "id": "brief_honest_result_and_boundary",
+              "status": "pass"
+            }
+          ],
+          "critical_failures": [],
+          "limits": [
+            "One three-row fixture aggregation verifies this local helper completion and persisted arithmetic/provenance only. No real performance, UX, adapter breadth, statistical adequacy, genuine device context or production reliability conclusion follows.",
+            "Toolkit byte identity cannot be fully proven without an independent baseline; no toolkit mutation was observed."
+          ]
+        }
+      ],
+      "independent_judge_limitation": "Judge had no independent pre/post toolkit digest. Event record supported no edits; later main-agent mechanical check separately compared nine runtime Python files against the frozen initial baseline."
+    },
+    "main_agent_supplemental_mechanical_checks": {
+      "kind": "post-run-mechanical-forward-checks",
+      "cases": [
+        {
+          "case": "A-retention",
+          "original_inputs_unchanged": true,
+          "all_recorded_files_unchanged_after_run": true,
+          "native_model_and_effort_contexts": [
+            {
+              "model": "gpt-6-sol",
+              "effort": "high"
+            }
+          ],
+          "native_counters_match": true
+        },
+        {
+          "case": "B-metrics",
+          "original_inputs_unchanged": true,
+          "all_recorded_files_unchanged_after_run": true,
+          "native_model_and_effort_contexts": [
+            {
+              "model": "gpt-6-sol",
+              "effort": "high"
+            }
+          ],
+          "native_counters_match": true,
+          "summary_sha256": "0e754664fbbe08184b66f0703682acbd77456b01bdf50c9696439d9e6d4b2c28",
+          "statistics": {
+            "count": 3,
+            "mean": 200,
+            "p50": 200,
+            "p95": 290,
+            "minimum": 100,
+            "maximum": 300
+          },
+          "unit": "ms",
+          "provenance_matches_original_input": true,
+          "intent_unsealed": true
+        }
+      ],
+      "runtime_source_byte_identical_to_baseline": true,
+      "runtime_source_files": 9,
+      "minor_post_forward_doc_qualifier": "mobile-environment.md resume now explicitly directs storage-only device RUNs to status/release; no forward case exercised device use"
+    },
+    "coverage": "Retention advice with cross-tenant constraints; real helper aggregation of three synthetic values with source provenance. No native UI/device/performance measurements."
+  },
+  "repository_checks": {
+    "deterministic_tests_passed": 181,
+    "public_corpus_cases": 11,
+    "public_corpus_is_fresh_holdout": false,
+    "changed_skill_validations_passed": 5,
+    "runtime_python_sources_unchanged": true
+  },
+  "claude": {
+    "cli_version": "2.1.301",
+    "native_plugin_manifest_validation_passed": true,
+    "live_behavior_tested": false,
+    "user_decision": "Proceed with Codex; defer Claude execution comparison to later",
+    "reason": "OAuth session expired and could not be refreshed; no replacement provider used"
+  },
+  "adopted": [
+    {
+      "decision": "全経路で短い能力確認を行う",
+      "reason": "開始状態・必要な操作・観測できる結果を確認し、到達だけで操作や保存まで成功したとしない。狭く低リスクで成功条件が明確な変更は短く進める。行数やAIの自信だけで低リスクにしない。"
+    },
+    {
+      "decision": "推薦だけの依頼で、構造化記録を一律に要求しない",
+      "reason": "重要な推薦にも能力・全体案・根拠・未知・次の確認を含める。再開・反復実験・証拠の取り違え防止に必要な場合に、構造化記録を使う。初回比較では両版とも不要なRUNを作らず、記録負担の改善は観測されていない。"
+    },
+    {
+      "decision": "補助ツールの保存と、製品の検証を分ける",
+      "reason": "端末・数値・選択したモデル台帳の保存には初期化済みRUNを使うが、そのためだけの封印・設計計画・製品検証を要求しない。補助ツールの成功で製品が検証済みにはならない。所有端末の回収は必要。"
+    },
+    {
+      "decision": "指示・文書・回帰テストを同じ境界に揃える",
+      "reason": "実際の人の指示・承認・機密情報の境界を保つ。既に承認された現在設定の作業にモデル台帳を追加しない。未封印の集計保存でも製品検証の準備完了にはならないことをテストする。"
+    }
+  ],
+  "retained_optional": [
+    "device ownership and cleanup",
+    "selected numeric metrics aggregation",
+    "approved model/effort ledger when selected"
+  ],
+  "deferred": [
+    {
+      "decision": "runtime・API・型・保存形式・検証ゲートの変更",
+      "reason": "この比較に判断品質の差はなく、既存の整合性検査を弱める根拠がない。"
+    },
+    {
+      "decision": "端末・metrics・モデル台帳の削除や物理的な分離",
+      "reason": "任意機能として境界を明確にできる。配置変更が利用量・信頼性を改善する証拠は得られていない。"
+    },
+    {
+      "decision": "汎用Environment、ネイティブprofiler、新しい状態管理の仕組み",
+      "reason": "この実験で必要性・安定性を検証していない。InstrumentsやAndroid実機での性能検証を実施した結果ではない。"
+    }
+  ],
+  "claim_limits": [
+    "Only four synthetic task pairs, one execution per arm/task; no statistical efficacy or equivalence claim.",
+    "Three tasks primarily advise; the tested edits are small. Not broad production reliability or unknown-technology exploration evidence.",
+    "Same requested model/effort verified in native client context; server weights, cache effects and timing variance not eliminated.",
+    "Same-score result and no fresh holdout do not meet the strict behavioral-improvement/transfer promotion conditions; no passed grade claim.",
+    "No comparison against pstack, another product or a bare host.",
+    "Six-percent total-token reduction belongs only to initial B on this fixed suite, includes cached input, and does not establish lower billing or a final-version savings rate.",
+    "Visible human intervention counts are zero in both; no human time, cognitive load or usability benefit established.",
+    "x/y judging intended to conceal arms, but residual a/b identifiers in output-link path metadata made blinding incomplete.",
+    "Final source differs from the measured initial candidate; separate completion checks cannot transfer initial cost results to it.",
+    "Public summary omits raw execution traces and private context, so it is not a complete independent reproduction package."
+  ]
+}

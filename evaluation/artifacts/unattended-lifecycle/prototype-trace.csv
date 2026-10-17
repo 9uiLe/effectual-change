@@ -1,0 +1,6 @@
+time,condition,event,result
+2026-10-14T10:00:00,foreground_unlocked,macro_started,running
+2026-10-14T10:00:31,foreground_unlocked,request_R17_visible,observed
+2026-10-14T10:00:33,foreground_unlocked,click_acknowledge_R17,clicked
+2026-10-14T10:00:34,foreground_unlocked,read_status_R17,Acknowledged_receipt_982
+2026-10-14T10:01:00,foreground_unlocked,operator_stopped_macro,stopped

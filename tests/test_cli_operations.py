@@ -113,6 +113,9 @@ class CliOperationsTests(unittest.TestCase):
 
     def test_metrics_cli_persists_only_derived_summaries_and_matched_comparison(self):
         self.initialize()
+        record = {self.run / name: (self.run / name).read_bytes()
+                  for name in ("intent.json", "plan.json", "journal.json")}
+        self.assertFalse((self.run / "seal.json").exists())
         baseline_source = self.samples("baseline.jsonl", [10, 20, 30])
         candidate_source = self.samples("candidate.jsonl", [9, 18, 27], revision="fixture-candidate")
         before = {path: path.read_bytes() for path in (baseline_source, candidate_source)}
@@ -131,6 +134,12 @@ class CliOperationsTests(unittest.TestCase):
                          {"absolute": -2, "percent": -10})
         self.assertEqual(set((self.run / "metrics").iterdir()), {baseline, candidate, comparison})
         self.assertEqual(list((self.run / "artifacts").iterdir()), [])
+        for path, original in record.items():
+            self.assertEqual(path.read_bytes(), original)
+        verification = self.cli("check", self.run, "--stage", "verify", expected=1)
+        self.assertIs(verification["structural_readiness"], False)
+        self.assertIn("INTENT_UNSEALED", {item["code"] for item in verification["findings"]})
+        self.assertFalse((self.run / "seal.json").exists())
         for path, original in before.items():
             self.assertEqual(path.read_bytes(), original)
         for path in self.run.rglob("*"):

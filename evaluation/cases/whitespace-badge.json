@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "whitespace-badge",
+  "title": "Fix a clearly specified whitespace predicate",
+  "split": "regression",
+  "brief": "Please fix delivery_badge in artifacts/whitespace-badge/delivery_status.py. It currently labels a whitespace-only delivered_at string as Delivered. The complete rule is: an empty string or a string containing only whitespace returns 'Pending'; any other string returns 'Delivered'. Keep the function signature, return labels, and command-line interface. Do not parse or validate dates: even 'not-a-date' is a nonblank string and must return 'Delivered'. Make this small change directly, then write a brief response.md saying what changed and what you checked. You may run Python from the standard library. Do not create a new test file, add dependencies, or refactor unrelated code. Success is an actual edited file for which delivery_badge('') and delivery_badge(' \\t\\n') return 'Pending', and delivery_badge('2026-10-17') and delivery_badge(' not-a-date ') return 'Delivered'. The whitespace example denotes actual space, tab, and newline characters, not literal backslashes.",
+  "artifacts": [
+    "whitespace-badge/delivery_status.py"
+  ]
+}
