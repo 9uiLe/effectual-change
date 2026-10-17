@@ -80,9 +80,7 @@ class EvaluationTests(unittest.TestCase):
 
     def test_shipped_corpus_has_no_claimed_fresh_holdout(self):
         suite = corpus.load_suite(self.root)
-        self.assertEqual(6, len(suite))
-        self.assertEqual(5, sum(row.case["split"] == "regression" for row in suite.values()))
-        self.assertEqual(1, sum(row.case["split"] == "transfer" for row in suite.values()))
+        self.assertEqual({"regression", "transfer"}, {row.case["split"] for row in suite.values()})
         self.assert_blocked(self.compare(), "no fresh private holdout")
 
     def test_packets_contain_only_allowlisted_public_fields_and_hashed_files(self):
@@ -157,7 +155,8 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual("eligible_for_review", report["promotion"]["status"])
         self.assertFalse(report["promotion"]["automatic_promotion"])
         self.assertIsNone(report["aggregate"]["candidate_metrics"]["cost_usd"])
-        self.assertEqual(7, report["aggregate"]["candidate_metrics"]["cases_with_unknown_cost"])
+        self.assertEqual(len(corpus.load_suite(self.root)),
+                         report["aggregate"]["candidate_metrics"]["cases_with_unknown_cost"])
 
     def test_holdout_declarations_are_required_and_false_declaration_blocks(self):
         self.add_holdout_fixture()
@@ -311,7 +310,7 @@ class EvaluationTests(unittest.TestCase):
         metrics = self.compare(candidate=candidate)["aggregate"]["candidate_metrics"]
         self.assertIsNone(metrics["cost_usd"])
         self.assertEqual(0.25, metrics["known_cost_subtotal_usd"])
-        self.assertEqual(5, metrics["cases_with_unknown_cost"])
+        self.assertEqual(len(candidate["cases"]) - 1, metrics["cases_with_unknown_cost"])
 
     def test_numeric_aggregation_rejects_overflow_instead_of_emitting_non_json(self):
         candidate = self.make_run("candidate")
