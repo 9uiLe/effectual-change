@@ -6,14 +6,17 @@ import json
 import fcntl
 import math
 import os
+import selectors
 import signal
 import subprocess
+import time
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import data_policy
 import policy
 from model import (Artifact, Assessment, Binding, Command, Completed, DataError,
                    Fingerprint, Finding, Intent, Observation, Plan, Run, Started,
@@ -43,11 +46,18 @@ def read_json(path: Path) -> dict:
     return value
 
 
+def _write_private(path: Path, raw: bytes) -> None:
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(raw)
+
+
 def write_json(path: Path, value: object) -> None:
     """Atomic replacement prevents a failed write from publishing half a document."""
     temporary = path.with_name(f".{path.name}-{uuid.uuid4().hex}.tmp")
     try:
-        with temporary.open("x", encoding="utf-8") as stream:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             json.dump(encode(value), stream, ensure_ascii=False, indent=2)
             stream.write("\n")
             stream.flush()
@@ -59,7 +69,8 @@ def write_json(path: Path, value: object) -> None:
 
 @contextmanager
 def mutation(root: Path):
-    with (root / ".write.lock").open("a+b") as stream:
+    descriptor = os.open(root / ".write.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "a+b") as stream:
         try:
             fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
@@ -245,14 +256,14 @@ def load(root: Path) -> Loaded:
 
 
 def initialize(root: Path, brief_path: Path, goal: str) -> dict:
-    brief = brief_path.read_bytes()
-    brief.decode("utf-8")
+    brief = data_policy.read_file(brief_path, label="Original brief")
+    data_policy.check_text(goal, label="Goal")
     if not goal.strip():
         raise DataError("Goal must be nonempty")
-    root.mkdir(parents=True, exist_ok=False)
-    (root / "brief.md").write_bytes(brief)
-    (root / "artifacts").mkdir()
-    (root / "checkpoints").mkdir()
+    root.mkdir(mode=0o700, parents=True, exist_ok=False)
+    _write_private(root / "brief.md", brief)
+    (root / "artifacts").mkdir(mode=0o700)
+    (root / "checkpoints").mkdir(mode=0o700)
     write_json(root / "intent.json", {"schema_version": 1, "outcomes": [
         {"id": "O1", "statement": goal, "acceptance": ""}], "constraints": []})
     write_json(root / "plan.json", {"schema_version": 1, "target_environment": "",
@@ -339,11 +350,12 @@ def _complete(root: Path, observation_id: str, method: str, provenance: str,
         if observation.completed is not None:
             raise DataError("Observation is already completed; begin a new observation")
         directory = artifact_path(root, f"artifacts/{observation_id}/{uuid.uuid4().hex}")
-        directory.mkdir(parents=True, exist_ok=False)
+        directory.parent.mkdir(mode=0o700, exist_ok=True)
+        directory.mkdir(mode=0o700, exist_ok=False)
         artifacts = []
         for filename, raw in files:
             path = directory / filename
-            path.write_bytes(raw)
+            _write_private(path, raw)
             artifacts.append(Artifact(path.relative_to(root).as_posix(), digest(raw)))
         completion = Completed(observation_id, now(), provenance, method, tuple(artifacts), command)
         _append(root, "completed", completion)
@@ -352,15 +364,58 @@ def _complete(root: Path, observation_id: str, method: str, provenance: str,
 
 
 def record(root: Path, observation_id: str, transcript: Path, method: str,
-           attachments: tuple[Path, ...] = ()) -> dict:
-    raw = transcript.read_bytes()
-    raw.decode("utf-8")
+           attachments: tuple[Path, ...] = (), *, allow_opaque_artifacts: bool = False) -> dict:
+    data_policy.check_text(method, label="Observation method")
+    raw = data_policy.read_file(transcript, label="Native transcript")
     if not raw.strip():
         raise DataError("Native observation needs a nonempty actual UTF-8 transcript")
     files = [("transcript.txt", raw)]
     for index, source in enumerate(attachments):
-        files.append((f"attachment-{index}{source.suffix}", source.read_bytes()))
+        files.append((f"attachment-{index}{source.suffix}", data_policy.read_file(
+            source, label="Selected attachment", allow_opaque=allow_opaque_artifacts)))
     return _complete(root, observation_id, method, "attested_native", tuple(files), None)
+
+
+def _capture_output(process: subprocess.Popen, timeout: float) -> tuple[bytes, bytes, bool]:
+    """Drain both pipes while retaining at most one byte beyond each stream cap."""
+    buffers = {process.stdout: bytearray(), process.stderr: bytearray()}
+    deadline = time.monotonic() + timeout
+    timed_out = False
+
+    def kill_group():
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+    with selectors.DefaultSelector() as selector:
+        for stream in buffers:
+            selector.register(stream, selectors.EVENT_READ)
+        while selector.get_map():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                if timed_out:
+                    break
+                timed_out = True
+                kill_group()
+                deadline = time.monotonic() + 1
+                remaining = 1
+            for key, _ in selector.select(min(remaining, 60)):
+                chunk = os.read(key.fd, 65536)
+                if not chunk:
+                    selector.unregister(key.fileobj)
+                    continue
+                buffer = buffers[key.fileobj]
+                buffer.extend(chunk[:max(0, data_policy.MAX_BYTES + 1 - len(buffer))])
+    for stream in buffers:
+        stream.close()
+    try:
+        process.wait(timeout=max(0, deadline - time.monotonic()))
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        kill_group()
+        process.wait()
+    return bytes(buffers[process.stdout]), bytes(buffers[process.stderr]), timed_out
 
 
 def capture(root: Path, experiment_id: str, argv: list[str], timeout: float,
@@ -369,6 +424,7 @@ def capture(root: Path, experiment_id: str, argv: list[str], timeout: float,
         raise DataError("Provide a literal command after --")
     if not math.isfinite(timeout) or timeout <= 0:
         raise DataError("Timeout must be finite and greater than zero")
+    data_policy.check_argv(argv)
     directory = (cwd or Path.cwd()).resolve(strict=True)
     if not directory.is_dir():
         raise DataError("Command working directory must be a directory")
@@ -378,26 +434,46 @@ def capture(root: Path, experiment_id: str, argv: list[str], timeout: float,
         process = subprocess.Popen(argv, cwd=directory, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    start_new_session=True)
         try:
-            stdout, stderr = process.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            status = "timeout"
+            stdout, stderr, timed_out = _capture_output(process, timeout)
+        except BaseException:
             try:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-            stdout, stderr = process.communicate()
+            for stream in (process.stdout, process.stderr):
+                stream.close()
+            process.wait()
+            raise
+        if timed_out:
+            status = "timeout"
         exit_code = process.returncode
-    except OSError as exc:
-        status, stdout, stderr = "launch_error", b"", str(exc).encode("utf-8")
+    except OSError:
+        status, stdout, stderr = "launch_error", b"", b"Command could not be launched or captured safely.\n"
+    execution_status = status
+    blocked = []
+    for label, raw in (("stdout", stdout), ("stderr", stderr)):
+        try:
+            data_policy.validate_bytes(raw, label=label)
+        except DataError as exc:
+            blocked.append(str(exc))
+    files = (("stdout.bin", stdout), ("stderr.bin", stderr))
+    if blocked:
+        status = "output_blocked"
+        diagnostic = ("Command output was withheld; it is not passing evidence.\n"
+                      f"Execution status: {execution_status}.\n" + "\n".join(blocked) + "\n")
+        files = (("output-blocked.txt", diagnostic.encode("utf-8")),)
     command = Command(tuple(argv), str(directory), status, exit_code)
     result = _complete(root, observation_id, "Literal local command", "direct_command",
-                       (("stdout.bin", stdout), ("stderr.bin", stderr)), command)
+                       files, command)
     result.update(command_status=status, exit_code=exit_code)
+    if blocked:
+        result.update(execution_status=execution_status, output_issues=blocked)
     return result
 
 
 def assess(root: Path, observation_id: str, result: str, reason: str,
            resolves: tuple[str, ...] = ()) -> dict:
+    data_policy.check_text(reason, label="Assessment reason")
     with mutation(root):
         loaded = load(root)
         _require_integrity(loaded)
@@ -410,7 +486,7 @@ def assess(root: Path, observation_id: str, result: str, reason: str,
             raise DataError("Assessment needs a reason and unique resolution IDs")
         command = observation.completed.command
         if result == "pass" and command is not None and command.status != "completed":
-            raise DataError("Timeout or launch error cannot establish passing behavior")
+            raise DataError("Incomplete execution or blocked output cannot establish passing behavior")
         if resolves and result != "pass":
             raise DataError("Only a passing observation can resolve earlier negative observations")
         for old_id in resolves:

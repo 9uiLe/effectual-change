@@ -282,7 +282,7 @@ class Artifact:
 class Command:
     argv: tuple[str, ...]
     cwd: str
-    status: Literal["completed", "timeout", "launch_error"]
+    status: Literal["completed", "timeout", "launch_error", "output_blocked"]
     exit_code: int | None
 
 
