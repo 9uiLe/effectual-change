@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the complete local Outcome Harness skill set into one project."""
+"""Install the complete local Moletta skill set into one project."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import sys
 
 
 REQUIRED_SKILLS = frozenset(
-    {"outcome-harness", "outcome-explore", "outcome-compare", "outcome-verify", "outcome-learn"}
+    {"moletta", "moletta-explore", "moletta-compare", "moletta-verify", "moletta-learn"}
 )
 HOST_DIRS = {"codex": ".agents", "claude": ".claude"}
 
@@ -30,7 +30,7 @@ class Target:
 
 def skill_sources(repository: Path) -> list[Path]:
     skills = repository / "skills"
-    sources = sorted(skills.glob("outcome-*"))
+    sources = sorted([*skills.glob("moletta"), *skills.glob("moletta-*")])
     names = {source.name for source in sources}
     missing = REQUIRED_SKILLS - names
     if missing:
@@ -90,7 +90,7 @@ def install(targets: list[Target], mode: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Install ALL outcome-* skills from this checkout into one existing project. "
+            "Install ALL Moletta skills skills from this checkout into one existing project. "
             "Uses only local files; no downloads or configuration edits."
         ),
         epilog=(

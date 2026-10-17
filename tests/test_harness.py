@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills/outcome-harness/scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills/moletta/scripts"
 sys.path.insert(0, str(SCRIPTS))
 import harness
 from checks import inspect_run, read_json, report

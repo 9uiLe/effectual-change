@@ -1,11 +1,11 @@
 ---
-name: outcome-verify
+name: moletta-verify
 description: 成果物や試作品を実際に動かし、要求と目的への到達を証拠付きで検証する。局所試験を全体成功と混同しない確認、実験結果の適用範囲の判定、完了判断に使う。
 ---
 
-# Outcome Verify
+# Moletta Verify
 
-[workflow.md](../outcome-harness/references/workflow.md) の実行・記録と [record-format.md](../outcome-harness/references/record-format.md) の実験・証拠項目を読む。
+[workflow.md](../moletta/references/workflow.md) の実行・記録と [record-format.md](../moletta/references/record-format.md) の実験・証拠項目を読む。
 
 ## 実行前
 
@@ -26,6 +26,6 @@ description: 成果物や試作品を実際に動かし、要求と目的への�
 
 `verified` には、選んだ案の全要求に対する合格の実測と、対象環境で全成果を覆う `end_to_end` の証拠が必要。単体試験の集合だけでは代用しない。未解決の critical / material 指摘がある場合も到達扱いにしない。
 
-`check --stage verify` で構造と証拠を確認したうえで、原文からの意味上の抜けを再確認する。必要なら [delegation.md](../outcome-harness/references/delegation.md) の原文レビューを使う。対象環境で試せなければ、その限界と次の確認を示して `provisional` または `selected` にとどめる。
+`check --stage verify` で構造と証拠を確認したうえで、原文からの意味上の抜けを再確認する。必要なら [delegation.md](../moletta/references/delegation.md) の原文レビューを使う。対象環境で試せなければ、その限界と次の確認を示して `provisional` または `selected` にとどめる。
 
-全体試験に失敗したときは、同じ実装の修正だけに閉じず [outcome-explore](../outcome-explore/SKILL.md) / [outcome-compare](../outcome-compare/SKILL.md) で分解・全体案を再検討する。最後に、達成したこと、証拠、残る条件、次の行動を伝える。
+全体試験に失敗したときは、同じ実装の修正だけに閉じず [moletta-explore](../moletta-explore/SKILL.md) / [moletta-compare](../moletta-compare/SKILL.md) で分解・全体案を再検討する。最後に、達成したこと、証拠、残る条件、次の行動を伝える。

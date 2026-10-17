@@ -1,11 +1,11 @@
 ---
-name: outcome-explore
+name: moletta-explore
 description: 不確かな依頼から目的・必須制約・検証可能な要求を抽出し、異なる実現方式と判断を変える実験を探す。調査・試作を始めるときや、現在の分解では目的に届かないときに使う。
 ---
 
-# Outcome Explore
+# Moletta Explore
 
-[workflow.md](../outcome-harness/references/workflow.md) の開始・再開と [record-format.md](../outcome-harness/references/record-format.md) の該当項目を読む。既存記録があれば原文、固定した意図、現在の証拠から続ける。
+[workflow.md](../moletta/references/workflow.md) の開始・再開と [record-format.md](../moletta/references/record-format.md) の該当項目を読む。既存記録があれば原文、固定した意図、現在の証拠から続ける。
 
 ## 要求を原文へ戻す
 
@@ -28,4 +28,4 @@ description: 不確かな依頼から目的・必須制約・検証可能な要�
 
 調査・試行は一回の予算と終了条件を決める。例: 重要な未知一つを解消する、または事前に定めた調査時間に達する。終了時は証拠で進む、条件付きで進む、全体案や分解を再検討する、未解決を記して止める、から選ぶ。同じ問いを成果のないまま繰り返さない。
 
-構造を `check --stage plan` で確認し、次の判断は [outcome-compare](../outcome-compare/SKILL.md)、測定は [outcome-verify](../outcome-verify/SKILL.md) に必要な範囲だけ進む。
+構造を `check --stage plan` で確認し、次の判断は [moletta-compare](../moletta-compare/SKILL.md)、測定は [moletta-verify](../moletta-verify/SKILL.md) に必要な範囲だけ進む。

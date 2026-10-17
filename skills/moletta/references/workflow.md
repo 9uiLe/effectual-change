@@ -8,7 +8,7 @@
 
 ## 開始
 
-以下の `CORE` はこの package の `outcome-harness` フォルダ、`RUN` は新しい実行ディレクトリに置き換える。コマンドはエージェントの利用可能な実行手段から呼ぶ。
+以下の `CORE` はこの package の `moletta` フォルダ、`RUN` は新しい実行ディレクトリに置き換える。コマンドはエージェントの利用可能な実行手段から呼ぶ。
 
 ```sh
 python3 CORE/scripts/harness.py init RUN --brief FILE --goal '達成したい成果'
@@ -44,7 +44,7 @@ python3 CORE/scripts/harness.py check RUN --stage verify
 python3 CORE/scripts/harness.py capture RUN --experiment V1 --timeout 30 -- COMMAND ARG
 ```
 
-標準出力・標準エラー・終了状態が保存される。戻った locator と SHA-256 を使い、観測を読んで証拠の合否を自分で記す。捕捉器は意味上の合格を推定しない。資料の URL と捕捉した測定と推論の扱いは [outcome-verify](../../outcome-verify/SKILL.md) を参照する。
+標準出力・標準エラー・終了状態が保存される。戻った locator と SHA-256 を使い、観測を読んで証拠の合否を自分で記す。捕捉器は意味上の合格を推定しない。資料の URL と捕捉した測定と推論の扱いは [moletta-verify](../../moletta-verify/SKILL.md) を参照する。
 
 ## 有限の探索と再開
 

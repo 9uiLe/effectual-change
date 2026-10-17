@@ -1,6 +1,4 @@
-# Outcome Harness
-
-現在は仮称です。製品名の選定後に、技能名と呼び出し名も揃えます。
+# Moletta
 
 **ゴールを見失わず、知らない方法を探し、実物の証拠で判断を育てる。**
 
@@ -8,13 +6,21 @@ Codex と Claude Code で使う、開発のための AI ハーネスです。入
 
 人が示した目的と必須制約は維持し、途中の分解や技術選択は仮説として見直します。小さい変更には短い経路を使います。すべての作業で複数案、試作、レビュー、記録一式を要求する方式ではありません。
 
+## 名前に込めた想い
+
+**Moletta（モレッタ）** は、モグラを意味する英語の **mole** を、親しみのある愛称に整えた造語です。
+
+**未知を掘り、作りたいものへ。**
+
+自分の知らないことを、作れるものの限界にしない。見えていない前提や可能性を探し、見つけた方法が目指す成果につながるかを実物で確かめる。そして、得た経験を次の開発へ残す。Moletta には、そうして一緒に作り上げる、小さな相棒への想いを込めています。
+
 ## 導入
 
 Python 3.11 以上。macOS / Linux ではリンク導入を利用できます。コピー導入も用意しています。既存プロジェクトへの配置は次の一回です。
 
 ```sh
-git clone https://github.com/9uiLe/effectual-change.git
-cd effectual-change
+git clone https://github.com/9uiLe/moletta.git
+cd moletta
 python3 scripts/install.py /absolute/path/to/project
 ```
 
@@ -32,27 +38,27 @@ python3 scripts/install.py /absolute/path/to/another-project --host claude --mod
 Claude Code では checkout をセッション専用のプラグインとして読み込む方法もあります。
 
 ```sh
-claude --plugin-dir /absolute/path/to/effectual-change
+claude --plugin-dir /absolute/path/to/moletta
 ```
 
-プラグイン経由の呼び出しは `/outcome-harness:outcome-harness`。プロジェクト導入と同時に使って二重に読み込む必要はありません。
+プラグイン経由の呼び出しは `/moletta:moletta`。プロジェクト導入と同時に使って二重に読み込む必要はありません。
 
 ## 使う
 
 導入先プロジェクトで、普段の依頼に入口の名前を付けます。
 
-- Codex: `$outcome-harness このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
-- Claude Code: `/outcome-harness このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
+- Codex: `$moletta このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
+- Claude Code: `/moletta このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
 
 自動選択も有効です。実際の選択は各ホストの判断と設定に依存します。ユーザーが JSON の項目を埋めたり、次の技能を毎回選んだりすることは想定していません。主担当 AI が必要な経路を選び、記録とツールを操作します。
 
 | 技能 | 必要になる場面 |
 | --- | --- |
-| `outcome-harness` | 入口、軽い経路と通常経路の選択、再開 |
-| `outcome-explore` | 必要な能力の抽出、未知の方式と適用条件の調査 |
-| `outcome-compare` | 全体構成の比較、最終成果への寄与と負担の判断 |
-| `outcome-verify` | 判断を変える試作、実物の観測、証拠の適用範囲 |
-| `outcome-learn` | 実際の失敗を回帰ケースにし、小さい修正を比較評価 |
+| `moletta` | 入口、軽い経路と通常経路の選択、再開 |
+| `moletta-explore` | 必要な能力の抽出、未知の方式と適用条件の調査 |
+| `moletta-compare` | 全体構成の比較、最終成果への寄与と負担の判断 |
+| `moletta-verify` | 判断を変える試作、実物の観測、証拠の適用範囲 |
+| `moletta-learn` | 実際の失敗を回帰ケースにし、小さい修正を比較評価 |
 
 各技能は sibling のコア資料を参照します。個別のフォルダだけをコピーせず、インストーラーで一式を配置してください。
 
@@ -76,7 +82,7 @@ flowchart LR
 
 含まれるローカルツールは、要求に実現手段がないこと、対応する検証がないこと、意図の事後変更、実行証拠の不足や不整合、単体・別環境の測定を全体成立に読み替えることを点検します。未確認の部分を残した条件付き判断も扱います。
 
-実行は `capture` で保存できます。終了コード 0 から合格を自動推定せず、実行時の実験条件・出力と、エージェントが行った判定を区別します。再開時には `next` と `checkpoint` を使います。コマンドと記録形式は [実行と再開](skills/outcome-harness/references/workflow.md) と [記録形式](skills/outcome-harness/references/record-format.md) にあります。
+実行は `capture` で保存できます。終了コード 0 から合格を自動推定せず、実行時の実験条件・出力と、エージェントが行った判定を区別します。再開時には `next` と `checkpoint` を使います。コマンドと記録形式は [実行と再開](skills/moletta/references/workflow.md) と [記録形式](skills/moletta/references/record-format.md) にあります。
 
 チェックはホストの権限や実行を強制するフックではなく、エージェントが利用する検査です。ダイジェストはローカルファイルの変更を検出しますが、内容の真正性や、操作が意味上成功したことまでは保証しません。原文からの別文脈での読み直しと、実物の観測を併用します。
 
@@ -98,7 +104,7 @@ python3 -m unittest discover -s evaluation -p 'test_*.py' -v
 
 [pstack](https://github.com/cursor/plugins/tree/main/pstack) の入口による振り分け、実物の検証、振り返りから着想を得ています。文章・コードの移植は行わず、独自に実装しています。
 
-NASA の要求追跡・全体設計・実証環境の区別、SEI の設計前の QAW と設計案を評価する ATAM を、必要な問いとして取り入れています。公式手順への準拠や、網羅性・全体最適の保証を表すものではありません。[出典と適用範囲](skills/outcome-harness/references/sources.md)、[設計上の判断](docs/design.md) を参照してください。
+NASA の要求追跡・全体設計・実証環境の区別、SEI の設計前の QAW と設計案を評価する ATAM を、必要な問いとして取り入れています。公式手順への準拠や、網羅性・全体最適の保証を表すものではありません。[出典と適用範囲](skills/moletta/references/sources.md)、[設計上の判断](docs/design.md) を参照してください。
 
 Effectual Change の実装を置き換えた構成です。旧実装と旧評価の履歴は Git に残っています。
 

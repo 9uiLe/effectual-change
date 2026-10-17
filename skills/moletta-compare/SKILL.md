@@ -1,22 +1,22 @@
 ---
-name: outcome-compare
+name: moletta-compare
 description: 複数の実現方式または既存案を、元の成果・必須制約・証拠に照らして全体構成として比較する。採用、条件付き採用、棄却、追加検証の判断を残すときに使う。
 ---
 
-# Outcome Compare
+# Moletta Compare
 
-[workflow.md](../outcome-harness/references/workflow.md) と [record-format.md](../outcome-harness/references/record-format.md) の案・判断項目を読み、原文と固定した意図に照らして選ぶ。
+[workflow.md](../moletta/references/workflow.md) と [record-format.md](../moletta/references/record-format.md) の案・判断項目を読み、原文と固定した意図に照らして選ぶ。
 
 ## 比較の単位
 
 - 部品ごとの最高点を寄せ集めず、組み合わせたときに成果へ届く構成を比較する。接続、運用、移行、費用、失敗時を含め、課題に重要な条件だけを扱う。
 - 各案について、各要求を満たす具体的な仕組み、証拠、未知、制約違反を並べる。必須能力の欠落を他項目の高得点で相殺しない。
-- 結論に影響する現在の方法・別機構の調査がなければ [outcome-explore](../outcome-explore/SKILL.md) で補う。一案だけなら、他方式を外した実際の理由を残す。
+- 結論に影響する現在の方法・別機構の調査がなければ [moletta-explore](../moletta-explore/SKILL.md) で補う。一案だけなら、他方式を外した実際の理由を残す。
 - 速さ、費用、保守性などの好みは、人が示した優先順位を使う。未指定の価値判断が結論を左右する場合だけ選択を求める。技術的な未知は調査や識別実験にする。
 
 ## 反証と全体の見直し
 
-重要な選択や意味の抜けが疑われるときは [delegation.md](../outcome-harness/references/delegation.md) に従い、独立した文脈で原文から必要能力を再構成するレビューを行う。利用できなければ自己レビューと明記する。狭い低リスク作業に一律には追加しない。
+重要な選択や意味の抜けが疑われるときは [delegation.md](../moletta/references/delegation.md) に従い、独立した文脈で原文から必要能力を再構成するレビューを行う。利用できなければ自己レビューと明記する。狭い低リスク作業に一律には追加しない。
 
 局所の改善が目的へ寄与しない、重要要求の仕組みが存在しない、環境を変えると成立しない場合は、部品修正だけでなく分解、境界、全体方式を開き直す。元の目的や必須制約は維持する。
 
@@ -29,7 +29,7 @@ description: 複数の実現方式または既存案を、元の成果・必須�
 | `exploring` | 選択に必要な問いを調べている |
 | `provisional` | 未知を明記し、解消条件・不成立時の対応付きで限定的に進む |
 | `selected` | 必須能力に既知の違反がなく、この案を採用する。全体達成の実証とは区別する |
-| `verified` | [outcome-verify](../outcome-verify/SKILL.md) の実測と全体確認まで満たした |
+| `verified` | [moletta-verify](../moletta-verify/SKILL.md) の実測と全体確認まで満たした |
 | `rejected` | 現条件では採用できない |
 
 未解決の重大指摘を放置して確定しない。`check --stage decide` を行い、検査結果を原文・証拠と一緒に判断する。結論を変える未知だけを、予算を決めた次の行動へつなぐ。

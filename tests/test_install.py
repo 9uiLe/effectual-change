@@ -9,7 +9,7 @@ import unittest
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
-SKILLS = ("outcome-harness", "outcome-explore", "outcome-compare", "outcome-verify", "outcome-learn")
+SKILLS = ("moletta", "moletta-explore", "moletta-compare", "moletta-verify", "moletta-learn")
 
 
 class InstallTests(unittest.TestCase):
@@ -27,9 +27,9 @@ class InstallTests(unittest.TestCase):
             skill.mkdir(parents=True)
             (skill / "SKILL.md").write_text(
                 f"---\nname: {name}\ndescription: Fixture skill.\n---\n"
-                "Read ../outcome-harness/references/process.md\n", encoding="utf-8"
+                "Read ../moletta/references/process.md\n", encoding="utf-8"
             )
-        core = self.package / "skills" / "outcome-harness"
+        core = self.package / "skills" / "moletta"
         (core / "references").mkdir()
         (core / "references" / "process.md").write_text("shared reference\n", encoding="utf-8")
         (core / "scripts").mkdir()
@@ -49,10 +49,10 @@ class InstallTests(unittest.TestCase):
             for name in SKILLS:
                 self.assertEqual((directory / name).is_symlink(), mode == "symlink")
                 self.assertTrue((directory / name / "SKILL.md").is_file())
-                reference = directory / name / ".." / "outcome-harness" / "references" / "process.md"
+                reference = directory / name / ".." / "moletta" / "references" / "process.md"
                 self.assertEqual(reference.read_text(encoding="utf-8"), "shared reference\n")
             helper = subprocess.run(
-                [sys.executable, str(directory / "outcome-harness" / "scripts" / "harness.py")],
+                [sys.executable, str(directory / "moletta" / "scripts" / "harness.py")],
                 capture_output=True, text=True,
             )
             self.assertEqual(helper.returncode, 0, helper.stderr)
@@ -69,9 +69,9 @@ class InstallTests(unittest.TestCase):
 
     def test_identical_links_are_idempotent_including_relative_links(self):
         self.assertEqual(self.run_installer().returncode, 0)
-        link = self.project / ".agents" / "skills" / "outcome-harness"
+        link = self.project / ".agents" / "skills" / "moletta"
         link.unlink()
-        link.symlink_to("../../../package/skills/outcome-harness", target_is_directory=True)
+        link.symlink_to("../../../package/skills/moletta", target_is_directory=True)
         before = {path: path.lstat().st_ino for host in (".agents", ".claude")
                   for path in (self.project / host / "skills").iterdir()}
         result = self.run_installer()
@@ -82,7 +82,7 @@ class InstallTests(unittest.TestCase):
     def test_any_late_host_conflict_blocks_all_installation(self):
         directory = self.project / ".claude" / "skills"
         directory.mkdir(parents=True)
-        conflict = directory / "outcome-verify"
+        conflict = directory / "moletta-verify"
         conflict.mkdir()
         (conflict / "user-data.txt").write_text("preserve me", encoding="utf-8")
         result = self.run_installer()
@@ -95,7 +95,7 @@ class InstallTests(unittest.TestCase):
     def test_dangling_symlink_is_a_conflict(self):
         directory = self.project / ".claude" / "skills"
         directory.mkdir(parents=True)
-        conflict = directory / "outcome-learn"
+        conflict = directory / "moletta-learn"
         conflict.symlink_to(self.root / "missing")
         result = self.run_installer()
         self.assertNotEqual(result.returncode, 0)
@@ -105,7 +105,7 @@ class InstallTests(unittest.TestCase):
     def test_regular_file_skill_is_not_overwritten(self):
         directory = self.project / ".claude" / "skills"
         directory.mkdir(parents=True)
-        conflict = directory / "outcome-compare"
+        conflict = directory / "moletta-compare"
         conflict.write_text("user-owned content", encoding="utf-8")
         result = self.run_installer()
         self.assertNotEqual(result.returncode, 0)
@@ -117,7 +117,7 @@ class InstallTests(unittest.TestCase):
         directory.mkdir(parents=True)
         foreign = self.root / "foreign-skill"
         foreign.mkdir()
-        conflict = directory / "outcome-harness"
+        conflict = directory / "moletta"
         conflict.symlink_to(foreign, target_is_directory=True)
         result = self.run_installer()
         self.assertNotEqual(result.returncode, 0)
@@ -149,7 +149,7 @@ class InstallTests(unittest.TestCase):
 
     def test_existing_copy_is_not_overwritten(self):
         self.assertEqual(self.run_installer("--mode", "copy").returncode, 0)
-        user_file = self.project / ".claude" / "skills" / "outcome-learn" / "notes.txt"
+        user_file = self.project / ".claude" / "skills" / "moletta-learn" / "notes.txt"
         user_file.write_text("local additions", encoding="utf-8")
         result = self.run_installer("--mode", "copy")
         self.assertNotEqual(result.returncode, 0)
@@ -166,17 +166,17 @@ class InstallTests(unittest.TestCase):
                 self.assertEqual({path.name for path in (project / selected / "skills").iterdir()}, set(SKILLS))
                 self.assertFalse((project / absent).exists())
 
-    def test_additional_outcome_skills_install_with_family(self):
-        extra = self.package / "skills" / "outcome-future"
+    def test_additional_moletta_skills_install_with_family(self):
+        extra = self.package / "skills" / "moletta-future"
         extra.mkdir()
         (extra / "SKILL.md").write_text("additional skill", encoding="utf-8")
         result = self.run_installer()
         self.assertEqual(result.returncode, 0, result.stderr)
         for host in (".agents", ".claude"):
-            self.assertEqual((self.project / host / "skills" / "outcome-future").resolve(), extra)
+            self.assertEqual((self.project / host / "skills" / "moletta-future").resolve(), extra)
 
     def test_incomplete_package_fails_before_project_mutation(self):
-        shutil.rmtree(self.package / "skills" / "outcome-learn")
+        shutil.rmtree(self.package / "skills" / "moletta-learn")
         result = self.run_installer()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Incomplete package", result.stderr)
@@ -199,7 +199,7 @@ class InstallTests(unittest.TestCase):
             capture_output=True, text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        for text in ("ALL outcome-*", "--host", "--mode", ".agents/skills", ".claude/skills"):
+        for text in ("ALL Moletta skills", "--host", "--mode", ".agents/skills", ".claude/skills"):
             self.assertIn(text, result.stdout)
 
 

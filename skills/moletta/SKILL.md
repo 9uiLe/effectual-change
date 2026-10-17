@@ -1,9 +1,9 @@
 ---
-name: outcome-harness
+name: moletta
 description: 元の目的・必須制約を保ち、不確かな課題の探索、全体案の比較、実物での検証、途中再開をつなぐ。目的達成より部分作業に集中し始めたときや、根拠付きで進め方を選ぶときに使う。明確で低リスクな小変更には短い経路を選ぶ。
 ---
 
-# Outcome Harness
+# Moletta
 
 元の依頼から「何が実現すれば成功か」と人が指定した必須制約を保ち、次に不確実性を減らす行動を選ぶ。分解、実装方法、採用案は証拠に応じて作り直せる。
 
@@ -16,10 +16,10 @@ description: 元の目的・必須制約を保ち、不確かな課題の探索�
 
 | 未解決事項 | 読む技能 |
 | --- | --- |
-| 要求、実現方式、試すべき問いが不明 | [outcome-explore](../outcome-explore/SKILL.md) |
-| 全体としてどの案を選べるか | [outcome-compare](../outcome-compare/SKILL.md) |
-| 実物が目的と要求を満たすか | [outcome-verify](../outcome-verify/SKILL.md) |
-| 再発する失敗から手順を改善するか | [outcome-learn](../outcome-learn/SKILL.md) |
+| 要求、実現方式、試すべき問いが不明 | [moletta-explore](../moletta-explore/SKILL.md) |
+| 全体としてどの案を選べるか | [moletta-compare](../moletta-compare/SKILL.md) |
+| 実物が目的と要求を満たすか | [moletta-verify](../moletta-verify/SKILL.md) |
+| 再発する失敗から手順を改善するか | [moletta-learn](../moletta-learn/SKILL.md) |
 
 ## 維持する区別
 

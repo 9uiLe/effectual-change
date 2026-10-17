@@ -132,7 +132,7 @@ def prepare(case_id, destination=None, root=ROOT):
     require(case_id in suite, f"unknown case: {case_id}")
     files, manifest = public_packet(suite[case_id], root)
     if destination is None:
-        target = Path(tempfile.mkdtemp(prefix="outcome-case-"))
+        target = Path(tempfile.mkdtemp(prefix="moletta-case-"))
     else:
         target = Path(destination).resolve()
         require(not target.exists(), "destination must not exist")

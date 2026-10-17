@@ -1,5 +1,5 @@
 {
-  "name": "outcome-harness",
+  "name": "moletta",
   "version": "0.1.0",
   "author": {"name": "9uiLe"},
   "description": "Portable skills for tracing outcomes, comparing approaches, and checking recorded evidence."

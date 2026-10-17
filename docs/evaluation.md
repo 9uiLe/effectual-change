@@ -1,6 +1,6 @@
 # Behavioral evaluation and bounded learning
 
-The evaluation suite asks whether Outcome Harness helps an agent achieve the user's whole outcome, investigate a consequential unknown and keep its claims within its evidence. It also checks whether the agent can finish a simple edit without imposing a large process. The evaluator never scores an answer by matching words, API names or checklist phrases.
+The evaluation suite asks whether Moletta helps an agent achieve the user's whole outcome, investigate a consequential unknown and keep its claims within its evidence. It also checks whether the agent can finish a simple edit without imposing a large process. The evaluator never scores an answer by matching words, API names or checklist phrases.
 
 **Current results status:** no paired baseline/candidate evaluation or independent behavioral verdicts are supplied. Initial, unpaired smoke observations and their limits are recorded in [validation.md](validation.md). The case corpus and evaluator have deterministic structural tests. Passing those tests is not evidence that the skill improves agent behavior. Test-generated verdicts are temporary synthetic fixtures, never behavioral results.
 
