@@ -64,6 +64,8 @@ iOS / Android の並行作業には、インストール済みの OS runtime / s
 
 案件側で出力した性能値は、対応する CSV / JSONL、xcresult metrics JSON、AndroidX の単一値 benchmark JSON から集約できます。元のログをコピーせず、測定条件が一致する集約同士を比較します。[性能測定の対応形式](skills/moletta/references/performance.md) を参照してください。
 
+スクロールのカクつきには [滑らかさの検証手順](skills/moletta/references/scroll-performance.md) を使います。再現操作と hitch 指標を確認し、XCTest の数値比較と Instruments の原因調査をつなぎます。xctrace の記録・`.trace` の直接解析を自動化する専用機構は未提供です。
+
 主担当は作業を分解し、実行と判断の役割に応じて、ホストで利用できるモデル・effort を確認します。ユーザーが実際に承認した範囲、予算、並列数を記録してから担当を予約します。モデル名を固定した内部カタログや、自動起動機構は持ちません。実際の起動と停止、権限管理はホストが担います。[担当と予算の扱い](skills/moletta/references/adaptive-delegation.md) に境界があります。
 
 ## ローカル情報の扱い
