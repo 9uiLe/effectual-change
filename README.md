@@ -94,9 +94,12 @@ iOS / Android の並行作業には、インストール済みの OS runtime / s
 - [アーキテクチャと責務](docs/architecture.md)
 - [記録形式](skills/moletta/references/record-format.md)
 - [行動評価と改善](docs/evaluation.md)
+- [現行版と反証候補の限定試行：新規5課題・20実行](docs/measurements/2026-10-17-refutation-trial.md)
 - [最終版と基準版の9課題比較：見落とし・負担・時間・token](docs/measurements/2026-10-17-final-routing.md)
 - [初期候補の4課題比較と検証範囲](docs/measurements/2026-10-17-routing.md)
 - [開発・検証・配布](docs/development.md)
+
+最新の限定試行では、現行 `9e1823b` と指示2ファイル・計199文字の反証候補を比較し、成果に関わる見落としの改善を確認できなかったため、出荷技能・runtime は現行版を維持しています。不要な確認・承認・手作業は両版0件で、候補は合計時間14.1%、総token26.2%増でした。請求額と人時間は未測定で、一般的な有効性や品質低下を示す結果ではありません。条件と採点上の留保は限定試行の記録を参照してください。
 
 ローカルと CI は同じ入口で、配布物、参照、公開評価コーパス、実行ツールのテストを確認します。
 
