@@ -10,10 +10,8 @@ from pathlib import Path
 import shutil
 import sys
 
+from distribution import DistributionError, validate_package
 
-REQUIRED_SKILLS = frozenset(
-    {"moletta", "moletta-explore", "moletta-compare", "moletta-verify", "moletta-learn"}
-)
 HOST_DIRS = {"codex": ".agents", "claude": ".claude"}
 
 
@@ -28,20 +26,7 @@ class Target:
     unchanged: bool
 
 
-def skill_sources(repository: Path) -> list[Path]:
-    skills = repository / "skills"
-    sources = sorted([*skills.glob("moletta"), *skills.glob("moletta-*")])
-    names = {source.name for source in sources}
-    missing = REQUIRED_SKILLS - names
-    if missing:
-        raise InstallError(f"Incomplete package; missing skills: {', '.join(sorted(missing))}")
-    for source in sources:
-        if not source.is_dir() or source.is_symlink() or not (source / "SKILL.md").is_file():
-            raise InstallError(f"Expected a skill directory with SKILL.md: {source}")
-    return sources
-
-
-def preflight(project: Path, sources: list[Path], hosts: list[str]) -> list[Target]:
+def preflight(project: Path, sources: list[Path], hosts: list[str], mode: str) -> list[Target]:
     """Inspect every parent and destination before creating any project entries."""
     if not project.is_dir():
         raise InstallError(f"Project must be an existing directory: {project}")
@@ -63,7 +48,8 @@ def preflight(project: Path, sources: list[Path], hosts: list[str]) -> list[Targ
                 # Resolve relative and absolute links alike. Dangling or foreign
                 # links are conflicts, even though Path.exists() returns false.
                 try:
-                    unchanged = destination.is_symlink() and destination.resolve(strict=True) == source.resolve()
+                    unchanged = (mode == "symlink" and destination.is_symlink()
+                                 and destination.resolve(strict=True) == source.resolve())
                 except (OSError, RuntimeError):
                     unchanged = False
                 if not unchanged:
@@ -90,7 +76,7 @@ def install(targets: list[Target], mode: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Install ALL Moletta skills skills from this checkout into one existing project. "
+            "Install the complete Moletta skill family into one existing project. "
             "Uses only local files; no downloads or configuration edits."
         ),
         epilog=(
@@ -102,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("project", type=Path, help="existing project directory (global install is unsupported)")
     parser.add_argument(
-        "--host", choices=("both", "codex", "claude", "claude-code"), default="both",
+        "--host", choices=("both", "codex", "claude"), default="both",
         help="Codex uses .agents/skills; Claude Code uses .claude/skills (default: both)",
     )
     parser.add_argument(
@@ -112,14 +98,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if sys.version_info < (3, 11):
         parser.exit(1, "Python 3.11 or newer is required\n")
-    host = "claude" if args.host == "claude-code" else args.host
-    hosts = list(HOST_DIRS) if host == "both" else [host]
+    hosts = list(HOST_DIRS) if args.host == "both" else [args.host]
     repository = Path(__file__).resolve().parents[1]
     try:
-        sources = skill_sources(repository)
-        targets = preflight(args.project.expanduser().resolve(), sources, hosts)
+        sources = validate_package(repository)
+        targets = preflight(args.project.expanduser().resolve(), sources, hosts, args.mode)
         install(targets, args.mode)
-    except (InstallError, OSError, RuntimeError) as error:
+    except (InstallError, DistributionError, OSError, RuntimeError) as error:
         parser.exit(1, f"Installation failed: {error}\n")
     return 0
 

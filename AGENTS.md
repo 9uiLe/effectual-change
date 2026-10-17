@@ -1,9 +1,9 @@
-# Maintaining the harness
+# Maintaining Moletta
 
-- Preserve the original outcome and human constraints. Decompositions and mechanisms are hypotheses, not new user goals.
-- Skill behavior, structural checks, installer behavior and empirical quality are different contracts. Do not describe deterministic checks as proof of better decisions.
-- Keep the entry skill small. Put conditional instructions in the relevant focused skill or reference, and maintain sibling links with the installer.
-- A runtime record change needs behavioral tests at the CLI or record-check boundary and an update to `references/record-format.md`.
-- A skill change that claims better decisions needs paired behavioral evidence described in `docs/evaluation.md`. Evaluation fixtures are synthetic; never publish test-generated judgments as real results.
-- Keep evaluator rubrics out of solver packets. Do not tune against a holdout and continue calling it fresh.
-- Validate with the three commands in README. Preserve LICENSE and existing Git history.
+- Treat `docs/requirements.md` as the current product contract. Preserve user outcomes and hard constraints; decompositions and mechanisms remain revisable hypotheses.
+- Skills own decision policy, runtime owns typed records and observation integrity, evaluation owns packet/judgment contracts, distribution owns host placement. Keep dependencies in the directions described in `docs/architecture.md`.
+- Keep the entry skill small and read focused guidance only when needed. Do not impose records, prototypes or reviewers on every small task.
+- Change public CLI/data contracts, calling skills, examples and tests together. Do not preserve unspecified APIs, aliases or data formats with compatibility paths.
+- Tests express observable guarantees at the smallest suitable boundary. Test-generated judgments are synthetic fixtures, never efficacy evidence.
+- Never describe structural readiness as semantic completeness, authentic observations, global optimality or improved decisions. Keep evaluator rubrics out of solver packets and require fresh private transfer evidence for promotion.
+- Validate with `python3 scripts/validate.py`. Preserve LICENSE and Git history. Write current specifications without conversation-dependent change narratives.

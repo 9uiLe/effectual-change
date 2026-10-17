@@ -7,9 +7,9 @@ import sys
 import tempfile
 import unittest
 
+from scripts.distribution import SKILL_NAMES
 
 REPOSITORY = Path(__file__).resolve().parents[1]
-SKILLS = ("moletta", "moletta-explore", "moletta-compare", "moletta-verify", "moletta-learn")
 
 
 class InstallTests(unittest.TestCase):
@@ -21,19 +21,22 @@ class InstallTests(unittest.TestCase):
         self.project = self.root / "project"
         self.project.mkdir()
         (self.package / "scripts").mkdir(parents=True)
-        shutil.copy2(REPOSITORY / "scripts" / "install.py", self.package / "scripts" / "install.py")
-        for name in SKILLS:
+        for name in ("install.py", "distribution.py"):
+            shutil.copy2(REPOSITORY / "scripts" / name, self.package / "scripts" / name)
+        (self.package / ".claude-plugin").mkdir()
+        shutil.copy2(REPOSITORY / ".claude-plugin" / "plugin.json", self.package / ".claude-plugin" / "plugin.json")
+        for name in SKILL_NAMES:
             skill = self.package / "skills" / name
             skill.mkdir(parents=True)
             (skill / "SKILL.md").write_text(
                 f"---\nname: {name}\ndescription: Fixture skill.\n---\n"
-                "Read ../moletta/references/process.md\n", encoding="utf-8"
+                "Read [shared process](../moletta/references/process.md)\n", encoding="utf-8"
             )
         core = self.package / "skills" / "moletta"
         (core / "references").mkdir()
         (core / "references" / "process.md").write_text("shared reference\n", encoding="utf-8")
         (core / "scripts").mkdir()
-        (core / "scripts" / "harness.py").write_text("print('local helper available')\n", encoding="utf-8")
+        (core / "scripts" / "moletta.py").write_text("print('local helper available')\n", encoding="utf-8")
 
     def run_installer(self, *arguments, project=None):
         return subprocess.run(
@@ -45,14 +48,14 @@ class InstallTests(unittest.TestCase):
     def assert_hosts_usable(self, mode):
         for host in (".agents", ".claude"):
             directory = self.project / host / "skills"
-            self.assertEqual({path.name for path in directory.iterdir()}, set(SKILLS))
-            for name in SKILLS:
+            self.assertEqual({path.name for path in directory.iterdir()}, set(SKILL_NAMES))
+            for name in SKILL_NAMES:
                 self.assertEqual((directory / name).is_symlink(), mode == "symlink")
                 self.assertTrue((directory / name / "SKILL.md").is_file())
                 reference = directory / name / ".." / "moletta" / "references" / "process.md"
                 self.assertEqual(reference.read_text(encoding="utf-8"), "shared reference\n")
             helper = subprocess.run(
-                [sys.executable, str(directory / "moletta" / "scripts" / "harness.py")],
+                [sys.executable, str(directory / "moletta" / "scripts" / "moletta.py")],
                 capture_output=True, text=True,
             )
             self.assertEqual(helper.returncode, 0, helper.stderr)
@@ -157,29 +160,29 @@ class InstallTests(unittest.TestCase):
 
     def test_host_selection_still_installs_complete_skill_family(self):
         for host, selected, absent in (("codex", ".agents", ".claude"),
-                                       ("claude-code", ".claude", ".agents")):
+                                       ("claude", ".claude", ".agents")):
             with self.subTest(host=host):
                 project = self.root / host
                 project.mkdir()
                 result = self.run_installer("--host", host, project=project)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual({path.name for path in (project / selected / "skills").iterdir()}, set(SKILLS))
+                self.assertEqual({path.name for path in (project / selected / "skills").iterdir()}, set(SKILL_NAMES))
                 self.assertFalse((project / absent).exists())
 
-    def test_additional_moletta_skills_install_with_family(self):
+    def test_unlisted_skill_is_rejected_before_project_mutation(self):
         extra = self.package / "skills" / "moletta-future"
         extra.mkdir()
         (extra / "SKILL.md").write_text("additional skill", encoding="utf-8")
         result = self.run_installer()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        for host in (".agents", ".claude"):
-            self.assertEqual((self.project / host / "skills" / "moletta-future").resolve(), extra)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unexpected", result.stderr)
+        self.assertEqual(list(self.project.iterdir()), [])
 
     def test_incomplete_package_fails_before_project_mutation(self):
         shutil.rmtree(self.package / "skills" / "moletta-learn")
         result = self.run_installer()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Incomplete package", result.stderr)
+        self.assertIn("Incomplete skill package", result.stderr)
         self.assertEqual(list(self.project.iterdir()), [])
 
     def test_project_must_exist(self):
@@ -193,14 +196,33 @@ class InstallTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("global installation is not supported", result.stderr)
 
-    def test_help_explains_local_installation(self):
-        result = subprocess.run(
-            [sys.executable, str(self.package / "scripts" / "install.py"), "--help"],
-            capture_output=True, text=True,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        for text in ("ALL Moletta skills", "--host", "--mode", ".agents/skills", ".claude/skills"):
-            self.assertIn(text, result.stdout)
+    def test_copy_cannot_silently_reuse_existing_checkout_links(self):
+        self.assertEqual(self.run_installer().returncode, 0)
+        result = self.run_installer("--mode", "copy")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Refusing to replace", result.stderr)
+        self.assert_hosts_usable("symlink")
+
+    def test_broken_sibling_reference_blocks_installation_before_mutation(self):
+        reference = self.package / "skills" / "moletta" / "references" / "process.md"
+        reference.unlink()
+        result = self.run_installer()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing local link target", result.stderr)
+        self.assertEqual(list(self.project.iterdir()), [])
+
+    def test_invalid_metadata_blocks_installation_before_mutation(self):
+        entry = self.package / "skills" / "moletta-explore" / "SKILL.md"
+        entry.write_text("---\nname: wrong-name\ndescription: Fixture skill.\n---\n", encoding="utf-8")
+        result = self.run_installer()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("frontmatter name", result.stderr)
+        self.assertEqual(list(self.project.iterdir()), [])
+
+    def test_unsupported_host_is_rejected_without_project_mutation(self):
+        result = self.run_installer("--host", "unsupported")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(list(self.project.iterdir()), [])
 
 
 if __name__ == "__main__":

@@ -2,64 +2,87 @@
 
 ## 記録を使う範囲
 
-この経路は、判断が重要な探索や複数回にまたがる作業向け。入口の短い経路で十分なら、記録作成のためだけに作業を広げない。記録を使う場合の厳密な項目は [record-format.md](record-format.md) を参照する。
+重要な設計判断、不確かな実装、複数回にまたがる作業では記録を使う。明確で低リスクな小変更は、変更と相応の実物確認で完了できる。原文、操作履歴、出力の保存は案件の権限・保存方針に従う。
 
-原文は事後の要約に置き換えず、そのまま保存する。機密や持ち出し制約は元の依頼に従う。実行ファイルはローカルで管理する。
+`CORE` は導入された `moletta` 技能の絶対パス、`RUN` は新しい実行ディレクトリ、`FILE` は実際のファイルへ置き換える。コマンドは主担当エージェントが実行する。記録の形式は [record-format.md](record-format.md) を参照する。
 
-## 開始
-
-以下の `CORE` はこの package の `moletta` フォルダ、`RUN` は新しい実行ディレクトリに置き換える。コマンドはエージェントの利用可能な実行手段から呼ぶ。
+## 意図と計画
 
 ```sh
-python3 CORE/scripts/harness.py init RUN --brief FILE --goal '達成したい成果'
+python3 CORE/scripts/moletta.py init RUN --brief FILE --goal '達成したい成果'
 ```
 
-生成された `intent.json` に成果と受入条件、人の必須制約を記す。`record.json` には対象環境、原文に対応する要求、全体案、調査、実験を順に追加する。固定前に原文から読み直し、意図の取り違えを直す。目的はユーザーが望む結果のまま保ち、実現手段を目的にしない。
+`brief.md` は原文のコピー、`intent.json` は成果・受入条件・人の必須制約である。意図を確認して埋め、封印する。
 
 ```sh
-python3 CORE/scripts/harness.py seal RUN
+python3 CORE/scripts/moletta.py seal RUN
 ```
 
-`seal` は意図を固定する。以後、分解や導出要求、案は変更できるが、意図を書き換えたり再固定したりしない。人の判断で目的・必須制約を変更する場合は、新しい実行を作り、旧実行と変更理由を文章で参照する。
+封印後の意図は編集しない。人が目的・必須制約を変える場合は、新しい実行を作り、変更理由と参照元を残す。
 
-## 証拠と判断を進める
+`plan.json` に要求、全体案、資料、実験、レビュー、判断、次の行動を記す。分解や方式は根拠に応じて更新できる。全案共通の要求と、方式固有の義務を分ける。案の `subject` には対象の実装・設定の識別子と版を記し、追跡すべきローカル入力を明示する。
 
-現在必要な工程だけを使い、検査のために毎回人の承認を求めない。
+`next_action` には問い、理由、時間予算、終了条件を一つ記す。実験を選ぶ場合はその ID を対応させる。
 
 ```sh
-python3 CORE/scripts/harness.py check RUN --stage plan
-python3 CORE/scripts/harness.py check RUN --stage decide
-python3 CORE/scripts/harness.py check RUN --stage verify
+python3 CORE/scripts/moletta.py check RUN --stage plan
+python3 CORE/scripts/moletta.py check RUN --stage decide
 ```
 
-- `plan`: 意図、要求の出所と対応、全体案の仕組み・要求網羅、記載済みの実験設計を確認する。
-- `decide`: 調査、原文レビュー、成果への寄与、案の選択、条件付き判断も確認する。
-- `verify`: 実在する実行証拠との整合、対象環境への適用、成果全体の実証も確認する。
+`plan` は計画の対応、`decide` は出典を使った調査・原文レビュー・案の選択条件も調べる。必要な段階だけ使う。出力は意味上の完了宣言ではない。
 
-未知は探索や条件付き採用では保持できる。満足したことには変換しない。既知の必須能力違反を採用判断で隠さない。検査が成功しても意味の抜けや最良案の証明にはならない。
+## コマンドを観測する
 
-測定前に `record.json` へ実験を設計してから、実際のコマンドを捕捉する。
+実験条件を計画に書いてから実行する。`capture` は実行前の条件を固定し、実際の出力と終了状態を保存する。シェルの解釈を介さず argv を渡す。
 
 ```sh
-python3 CORE/scripts/harness.py capture RUN --experiment V1 --timeout 30 -- COMMAND ARG
+python3 CORE/scripts/moletta.py capture RUN --experiment V1 --timeout 30 --cwd PROJECT -- COMMAND ARG
 ```
 
-標準出力・標準エラー・終了状態が保存される。戻った locator と SHA-256 を使い、観測を読んで証拠の合否を自分で記す。捕捉器は意味上の合格を推定しない。資料の URL と捕捉した測定と推論の扱いは [moletta-verify](../../moletta-verify/SKILL.md) を参照する。
+`--cwd` を省略すると呼び出し元の作業ディレクトリを使う。タイムアウトでは POSIX のプロセス群を停止し、観測を残す。
+
+## ホストの操作ツールを観測する
+
+ブラウザー・画面・機器などは、ホストにあるツールで操作する。先に観測を開始する。
+
+```sh
+python3 CORE/scripts/moletta.py begin RUN --experiment V1
+```
+
+返された observation ID を保持し、実際に対象へ到達、操作、結果の観測を行う。そのツールの生の出力・操作履歴を UTF-8 ファイルへ保存し、必要な画像や結果ファイルを添付する。
+
+```sh
+python3 CORE/scripts/moletta.py record RUN --observation OBS --transcript TRACE --method '使用したツールと観測方法' --artifact IMAGE
+```
+
+`--artifact` は任意で複数回指定できる。実際の出力を説明文で置き換えず、取得できなかった観測を作らない。取り込みは `attested_native` として保存される。Moletta 自体が対象を操作したことや、そのファイルが本物のツール出力であることを認証する手順ではない。
+
+取り込みの保存が失敗した場合は、取得済みの同じ履歴を使って `record` を再試行できる。対象の操作を自動で繰り返す手順ではない。コマンド取得の保存に失敗した場合も、実行済みの作用を確認してから次の行動を選ぶ。
+
+## 観測を判定する
+
+どちらの取得方法でも、観測と実物を読み、事前の基準に対して一回の判定を付ける。
+
+```sh
+python3 CORE/scripts/moletta.py assess RUN --observation OBS --result pass --reason '事前の合格条件と観測の対応'
+```
+
+判定は `pass / fail / inconclusive`。終了コード 0 を自動合格にはしない。失敗・不明を後から合格へ書き換えず、別の適用可能な合格観測で解消を明示する。
+
+```sh
+python3 CORE/scripts/moletta.py assess RUN --observation NEW_OBS --result pass --reason '再確認した結果' --resolves OLD_OBS
+python3 CORE/scripts/moletta.py check RUN --stage verify
+```
+
+`verify` は選択案の対象環境で、全要求に合格観測があるかを調べる。さらに、成果ごとに、その成果へ対応する要求をすべて含む `end_to_end` の合格観測を必要とする。対象・実験・追跡入力が異なる観測は、現在の条件の根拠にしない。原文の欠落や観測の妥当性は別に読み直す。
 
 ## 有限の探索と再開
 
-各調査・実験で「何が分かれば判断が変わるか」、一回の時間・試行予算、終了条件を決める。費やした量で採用を正当化しない。予算終了時は、次のうち根拠がある一つを選ぶ。
-
-- 十分な証拠で次へ進む。
-- 重要な未知と解消条件を残して限定的に進む。
-- 局所修正を止め、全体案・分解を再検討する。
-- 外部条件や価値判断が必要なら、その具体的な不足を残す。
-
 ```sh
-python3 CORE/scripts/harness.py next RUN
-python3 CORE/scripts/harness.py checkpoint RUN
+python3 CORE/scripts/moletta.py next RUN
+python3 CORE/scripts/moletta.py checkpoint RUN
 ```
 
-`next` の提案を原文と実物に照らして採否判断する。出力は自動実行や承認ではない。中断前は記録を更新して `checkpoint` を作り、残る問いと次の観測を短く記す。
+`next` は修正すべき不整合、選択した案に関係する未完了・未判定・未解消の観測、宣言した次の行動を示す。自動実行や権限の追加ではない。予算と終了条件に達したら、証拠に基づく継続、条件付き判断、構成の再検討、外部の不足の提示から選び、`next_action` を更新または null にする。
 
-再開時は `brief.md`、`intent.json` / lock、`record.json`、関連する最新の実物を読み、`next` と必要な段階の `check` を行う。環境・成果物が変わったら旧証拠の適用範囲を見直す。経緯をすべて再探索せず、未解決の問いから続ける。
+中断前は計画を更新して checkpoint を作る。再開時は原文、封印した意図、計画、観測を読み、対象や環境の変化を確認して `next` から続ける。一つの実行ディレクトリを複数担当で編集しない。

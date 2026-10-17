@@ -2,7 +2,7 @@
   "schema_version": 1,
   "id": "crash-consistent-catalog",
   "title": "Power interruption during exhibit update",
-  "split": "holdout",
+  "split": "transfer",
   "brief": "An unattended museum kiosk receives a new exhibit catalog overnight. Visitors must always see either the complete previous catalog or the complete new one, with images matching captions; a power interruption during update must not expose a mixture, and the kiosk must recover without staff repair. Updates contain up to 2,000 entries and should become visible within ten minutes. Evaluate our current direction from the supplied fictional notes, choose a provisional complete approach and the smallest experiment that could overturn it. You cannot access a kiosk in this session; be explicit about evidence limits while still moving the decision forward.",
   "artifacts": [
     "crash-consistent-catalog/update-notes.md"

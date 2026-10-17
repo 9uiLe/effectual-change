@@ -12,4 +12,4 @@
 | [SEI: Quality Attribute Workshop Collection](https://www.sei.cmu.edu/library/quality-attribute-workshop-collection/) | 構成が決まる前に、事業目標から重要な品質要求を具体化する | 必要な条件だけを成果・受入条件・シナリオへ表す。正式な QAW の実施とは呼ばない |
 | [SEI: Architecture Tradeoff Analysis Method Collection](https://www.sei.cmu.edu/library/architecture-tradeoff-analysis-method-collection/) | 構成の品質目標に対するリスクと相互作用・トレードオフを調べる | 実現方式全体を比較し、未知と再考条件を残す。正式な ATAM 評価や訓練済み評価チームを代替しない |
 
-調査では、この背景資料だけで個別技術の結論を出さない。対象の公式仕様・論文・実物へ当たり、`research` に実際に読んだ URL、結論、その課題への適用条件を残す。実装の構造検査と、エージェントが原文の意味を理解して行動できるかの評価は別に行う。
+調査では、この背景資料だけで個別技術の結論を出さない。対象の公式仕様・論文・実物へ当たり、`notes` に読んだ出典と事実を、`research` に出典 ID、結論、その課題への適用条件を残す。実装の構造検査と、エージェントが原文の意味を理解して行動できるかの評価は別に行う。
