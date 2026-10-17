@@ -235,13 +235,15 @@ class ObservationIngressTests(unittest.TestCase):
         self.assertNotIn(b"synthetic-opaque-output", self.captured_bytes())
 
     def test_large_stdout_and_stderr_are_drained_and_withheld(self):
-        argv = self.program("import os\nfor stream in (1, 2):\n for _ in range(64):\n  os.write(stream, b'x' * 65536)\n")
+        argv = self.program("import os\nfor stream in (1, 2):\n for _ in range(64):\n  os.write(stream, b'x' * 65536)\n os.write(stream, b'ghp_' + b'Z' * 40)\n")
         result = store.capture(self.run, "V1", argv, 3)
         self.assertEqual(result["command_status"], "output_blocked")
         self.assertEqual(result["execution_status"], "completed")
         self.assertEqual(len(result["output_issues"]), 2)
         self.assertLess(len(self.captured_bytes()), 100_000)
         self.assertEqual([Path(item["path"]).name for item in result["artifacts"]], ["output-blocked.txt"])
+        self.assertNotIn(b"ghp_" + b"Z" * 40, self.captured_bytes())
+        self.assertNotIn("ghp_" + "Z" * 40, str(result))
 
     def test_large_output_and_timeout_both_remain_visible_without_raw_output(self):
         argv = self.program("import os,time\nfor _ in range(32): os.write(1, b'x' * 65536)\ntime.sleep(10)\n")

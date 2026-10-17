@@ -7,6 +7,7 @@ import fcntl
 import math
 import os
 import selectors
+import shutil
 import signal
 import subprocess
 import time
@@ -349,16 +350,27 @@ def _complete(root: Path, observation_id: str, method: str, provenance: str,
         observation = _find(loaded.run, observation_id)
         if observation.completed is not None:
             raise DataError("Observation is already completed; begin a new observation")
+        journal_before = (root / "journal.json").read_bytes()
         directory = artifact_path(root, f"artifacts/{observation_id}/{uuid.uuid4().hex}")
         directory.parent.mkdir(mode=0o700, exist_ok=True)
         directory.mkdir(mode=0o700, exist_ok=False)
         artifacts = []
-        for filename, raw in files:
-            path = directory / filename
-            _write_private(path, raw)
-            artifacts.append(Artifact(path.relative_to(root).as_posix(), digest(raw)))
-        completion = Completed(observation_id, now(), provenance, method, tuple(artifacts), command)
-        _append(root, "completed", completion)
+        try:
+            for filename, raw in files:
+                path = directory / filename
+                _write_private(path, raw)
+                artifacts.append(Artifact(path.relative_to(root).as_posix(), digest(raw)))
+            completion = Completed(observation_id, now(), provenance, method, tuple(artifacts), command)
+            _append(root, "completed", completion)
+        except BaseException:
+            # An error can follow publication; never remove potentially committed output.
+            try:
+                unpublished = (root / "journal.json").read_bytes() == journal_before
+            except OSError:
+                unpublished = False
+            if unpublished:
+                shutil.rmtree(directory)
+            raise
         return {"observation_id": observation_id, "status": "unassessed", "provenance": provenance,
                 "artifacts": [encode(item) for item in artifacts], "verdict": "unassessed"}
 

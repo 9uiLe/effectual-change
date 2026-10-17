@@ -322,12 +322,60 @@ class RuntimeTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 store.record(self.run, ident, transcript, "Synthetic native tool")
         self.assertIsNone(store.load(self.run).run.observations[0].completed)
+        self.assertEqual(list((self.run / "artifacts" / ident).iterdir()), [])
         store.record(self.run, ident, transcript, "Retry importing the same actual output")
         observation = store.load(self.run).run.observations[0]
         self.assertIsNotNone(observation.completed)
+        self.assertEqual(len(list((self.run / "artifacts" / ident).iterdir())), 1)
         store.assess(self.run, ident, "pass", "Existing actual output meets the criterion")
         self.select(ident)
         self.assertEqual(self.codes("verify"), set())
+
+    def test_partial_completion_file_write_removes_only_unpublished_output(self):
+        previous = self.capture()
+        previous_artifacts = store.load(self.run).run.observations[0].completed.artifacts
+        ident = store.begin(self.run, "V1")["observation_id"]
+        transcript = self.base / "tool-output.txt"
+        transcript.write_text("Synthetic operation output", encoding="utf-8")
+        attachment = self.base / "attachment.txt"
+        attachment.write_text("Synthetic attachment", encoding="utf-8")
+        write = store._write_private
+
+        def interrupted_write(path, raw):
+            if path.name.startswith("attachment-"):
+                raise OSError("Interrupted attachment write")
+            write(path, raw)
+
+        with mock.patch.object(store, "_write_private", side_effect=interrupted_write):
+            with self.assertRaises(OSError):
+                store.record(self.run, ident, transcript, "Synthetic tool", (attachment,))
+        loaded = store.load(self.run)
+        self.assertEqual(loaded.run.observations[0].started.id, previous)
+        self.assertEqual(loaded.run.observations[0].completed.artifacts, previous_artifacts)
+        self.assertIsNone(loaded.run.observations[1].completed)
+        self.assertEqual(list((self.run / "artifacts" / ident).iterdir()), [])
+        self.assertFalse(loaded.findings)
+
+    def test_published_completion_output_survives_an_error_after_journal_commit(self):
+        ident = store.begin(self.run, "V1")["observation_id"]
+        transcript = self.base / "tool-output.txt"
+        transcript.write_text("Synthetic already committed output", encoding="utf-8")
+        append = store._append
+
+        def publish_then_interrupt(*args):
+            append(*args)
+            raise OSError("Interrupted after publication")
+
+        with mock.patch.object(store, "_append", side_effect=publish_then_interrupt):
+            with self.assertRaises(OSError):
+                store.record(self.run, ident, transcript, "Synthetic tool")
+        loaded = store.load(self.run)
+        self.assertIsNotNone(loaded.run.observations[0].completed)
+        self.assertFalse(loaded.findings)
+        artifact = loaded.run.observations[0].completed.artifacts[0]
+        self.assertEqual((self.run / artifact.path).read_bytes(), transcript.read_bytes())
+        with self.assertRaisesRegex(DataError, "already completed"):
+            store.record(self.run, ident, transcript, "Do not duplicate committed output")
 
     def test_native_observation_cannot_be_retroactively_bound_to_changed_design(self):
         ident = store.begin(self.run, "V1")["observation_id"]
