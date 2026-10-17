@@ -1,178 +1,116 @@
-# Effectual Change
+# Moletta
 
-**既存ソフトウェアの変更における、不確実性を扱うためのAI意思決定フレームワーク**
+**未知を掘り、作りたいものへ。**
 
-Effectual Change は、エフェクチュエーションの5原則に着想を得て、AIコーディングエージェントが既存ソフトウェアに変更を加えるとき、「次に何をすべきか」を判断するためのフレームワークを検討するプロジェクトです。
+Moletta（モレッタ）は、Codex と Claude Code で使う AI 開発ハーネスです。目的から必要な能力を洗い出し、未知の実現方法を探し、全体構成を比べ、実物の観測から判断します。小さく明確な変更には短い手順を使い、再開や繰り返す実験に必要な記録を残します。
 
-> 現状理解が不完全なまま、正しい最終設計を最初から決めつけない。既存実装から手段と制約を発見し、変更の損失を限定し、人間と確認し、実験から学びながら、目標に到達する。
+## 名前に込めた想い
 
-**ステータス：** 議論・検証中の仮説です。エフェクチュエーション理論の公式なソフトウェア開発手法でも、有効性が実証された方法論でもありません。
+**Moletta** は、モグラを意味する英語の **mole** を、親しみのある愛称に整えた造語です。
 
-## 問題設定
+自分の知らないことを、作れるものの限界にしない。見えていない前提や可能性を探し、見つけた方法が目指す成果につながるかを実物で確かめる。そして、得た経験を次の開発へ残す。Moletta には、そうして一緒に作り上げる、小さな相棒への想いを込めています。
 
-現実のプロダクト開発では、新規開発よりも既存機能の追加・修正・改善・移行が頻繁に発生します。
+## 導入
 
-たとえば以下の要求です。
+macOS / Linux、Python 3.11 以上を使用します。特定のモデル、追加の Python パッケージ、外部 API、常駐サーバーは不要です。操作・調査・実装には、ホストが提供するツールと権限を使います。
 
-- 「この画面に機能を追加したい」
-- 「スクロールのカクツキを改善したい」
-- 「このオンボーディングを特定の属性のユーザーにだけ見せたい」
-- 「この画面をKotlin Multiplatform（KMP）に置き換えたい」
+```sh
+git clone https://github.com/9uiLe/moletta.git
+cd moletta
+python3 scripts/install.py /absolute/path/to/project
+```
 
-目標はある程度明確でも、実現経路は不明です。担当者自身が、仕様、暗黙の要件、依存関係、歴史的経緯、変更できない制約をすべて把握しているわけではありません。AIも同じです。
+既存プロジェクトの `.agents/skills/` と `.claude/skills/` に技能一式へのリンクを配置します。片方だけに導入する場合や、元の checkout から独立したコピーを置く場合は次のように指定します。
 
-**このフレームワークの目的は、目標をAIが勝手に決め直すことではなく、目標への安全で合理的な到達経路を、調査・実験・合意によって選び直すことです。**
+```sh
+python3 scripts/install.py /absolute/path/to/project --host codex
+python3 scripts/install.py /absolute/path/to/another-project --host claude --mode copy
+```
 
-## 5原則の翻訳
+全対象を配置前に確認し、既存項目を上書きしません。同じ checkout へのリンク導入は再実行できます。コピー導入では既存のリンクやコピーがあれば停止します。更新・削除する際は導入した技能だけを確認して取り除いてください。リンク導入は元の checkout の場所を維持します。
 
-| エフェクチュエーションの原則 | 既存ソフトウェア変更での問い |
+Claude Code はセッション専用プラグインとしても利用できます。
+
+```sh
+claude --plugin-dir /absolute/path/to/moletta
+```
+
+この導入方法の呼び出し名は `/moletta:moletta` です。プロジェクトへの導入と、どちらか一方を使います。
+
+## 使う
+
+普段の依頼に、ゴールと必須条件を添えます。手順や記録の操作は主担当 AI が行います。
+
+- Codex: `$moletta このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
+- Claude Code: `/moletta このゴールに向けて調査・設計・実装・検証を進めてください。必須条件は…`
+
+技能の自動選択も許可されています。実際の選択はホストの設定と判断に依存します。
+
+| 技能 | 責務 |
 | --- | --- |
-| **手中の鳥 / Bird in Hand** | 既存のコード・動作・テスト・知識から、何がわかり、何を使えるか？ |
-| **許容可能な損失 / Affordable Loss** | 何を維持し、どの範囲なら変更・実験してよいか？ |
-| **クレイジーキルト / Crazy Quilt** | どの判断には誰の知識・確認・具体的な合意が必要か？ |
-| **レモネード / Lemonade** | 調査・実験での予想外の発見は、設計をどう変えるか？ |
-| **飛行機のパイロット / Pilot in the Plane** | 不確かな将来を予測しすぎず、現在の変更・検証・復旧をどう制御可能にするか？ |
+| `moletta` | 入口、作業規模に応じた経路の選択、再開 |
+| `moletta-explore` | 原文からの能力抽出、未知の方式の調査 |
+| `moletta-compare` | 全体構成の比較、条件付き採用、再考 |
+| `moletta-verify` | 判断を変える実験、実物の観測、到達の判断 |
+| `moletta-learn` | 限定した改善仮説と、変更前後の行動評価 |
 
-詳しくは [原則の解釈と注意点](skills/effectual-change/references/principles.md) を参照してください。
+すべての経路で、開始状態から必要な操作、観測可能な結果までを確認します。到達・表示・終了コードだけで、操作や保存まで成功したとは扱いません。狭く低リスクで成功条件が明確な小変更は、変更と相応の実物確認で完了します。
 
-## 意思決定ループ
+必要な技能だけを使います。能力不足、対象環境の差、人の逐次操作への依存、権限変更、重大な異論があれば調査・実験・レビューへ進みます。重要な推薦も、必要能力、根拠と未知、次の確認を応答や依頼された成果物に示せます。構造化記録は、再開、複数回の実験、証拠の取り違え防止に必要な場合に選びます。
 
-1. **観測する：** 既存実装・動作を調べ、事実と仮説を分ける。
-2. **境界を決める：** 維持すべき動作、許容できる変更、停止・復旧条件を整理する。
-3. **次の行動を選ぶ：** 追加調査、最小実験、担当者への確認、設計見直し、実装、停止から選ぶ。
-4. **検証と合意：** 計測値、スクリーンショット、動画、テスト結果などで確かめる。
-5. **更新する：** 新しい発見を反映し、現時点で必要な設計に収束させる。
+主担当は、指示・成果・選好・提案・将来像を文脈から理解し、提案をそのまま機能追加へ変換しません。目的への効果と全体の負担を評価し、採用・別の場所で対応・保留・非採用を理由付きで選びます。人の判断が必要なら推奨と選択肢を提示します。丁寧に表現された明確な指示は守り、小変更へ不要な審査を加えません。[発言の解釈と範囲の判断](skills/moletta/references/intent-and-scope.md) に方針があります。
 
-この番号は固定の工程順ではありません。状況に応じて繰り返します。
+記録を開始すると、現在の Git worktree のルートへ `.moletta-runs/<作業単位ID>/` を作ります。各作業の記録は独立し、`.moletta-runs/README.md` が内容と保持方法を説明します。`/.moletta-runs/` を `.gitignore` に追加するよう案内しますが、設定を黙って変更しません。Git の外では選択したプロジェクトのディレクトリを使います。明示した場所への保存も選べます。
 
-詳細は [意思決定ループ](skills/effectual-change/references/decision-loop.md) に記述しています。
+## モバイル開発と担当の選択
 
-## まず試す
+iOS / Android の並行作業には、インストール済みの OS runtime / system image を共有し、作業ごとに独立した未起動の Simulator / AVD を作成します。自動ダウンロードは行いません。所有する端末だけを lease で追跡し、成功・失敗・中断を問わず解放します。未回収なら完了扱いにしません。[モバイル環境と解放](skills/moletta/references/mobile-environment.md) が操作を定義します。実機の UX 確認は人が担当します。
 
-[変更意思決定記録テンプレート](skills/effectual-change/assets/change-decision.md) に対象タスクを当てはめ、現状・未知・変更範囲を記録します。AIへの基本的な方針には [エージェント向け運用ガイド](skills/effectual-change/references/agent-playbook.md) を利用できます。
+案件側で出力した性能値は、対応する CSV / JSONL、xcresult metrics JSON、AndroidX の単一値 benchmark JSON から集約できます。元のログをコピーせず、測定条件が一致する集約同士を比較します。[性能測定の対応形式](skills/moletta/references/performance.md) を参照してください。
 
+スクロールのカクつきには [滑らかさの検証手順](skills/moletta/references/scroll-performance.md) を使います。再現操作と hitch 指標を確認し、XCTest の数値比較と Instruments の原因調査をつなぎます。xctrace の記録・`.trace` の直接解析を自動化する専用機構は未提供です。
 
-## Agent Skill
+主担当は独立した仕事に絞って委譲し、モデル・effort を選ぶときはホストで利用できる能力と実際のユーザー承認を確認します。現在の承認済み設定で足りる作業に追加の承認や予約台帳を課しません。複数担当の予算調整に必要な場合は、承認した範囲、予算、並列数を台帳で照合します。モデル名を固定した内部カタログや、自動起動機構は持ちません。実際の起動と停止、権限管理はホストが担います。[担当と予算の扱い](skills/moletta/references/adaptive-delegation.md) に境界があります。
 
-Claude Code と Codex で共有できる **Agent Skills形式のSkill** を提供します。入口は [SKILL.md](skills/effectual-change/SKILL.md)、詳細は `references/`、任意の記録テンプレートは `assets/` にあります。Skillとしてインストールするのは `skills/effectual-change/` ディレクトリだけで、npmパッケージや実行スクリプトは不要です。
+端末の所有記録、性能集約、選択した予約台帳の保存には、初期化済み RUN を使います。その保存だけのために意図の封印、設計計画、全体検証を追加しません。道具の処理成功は、製品の成果が検証できたこととは分けます。
 
-### 使い方
+## ローカル情報の扱い
 
-既存のコードベースで変更を依頼するときに使用します。Claude Codeでは `/effectual-change`、Codexでは `$effectual-change` で明示的に呼び出せます。発見・自動起動は各製品の設定とSkillの説明文に依存します。
+原文、履歴、添付物、集約は非公開の作業資料として扱います。明示して取り込む入力にはサイズ上限、特定の認証情報ファイル名、既知の秘密値パターン、symlink などの検査を行います。コマンド出力が保存条件を満たさない場合は本体を保持せず、`output_blocked` として合格の根拠から除きます。画像などの不透明な添付物は明示的な選択が必要です。
 
-このSkillは「設計方針の相談のみ」で止めるものではありません。コード変更が依頼されている場合は既存コードとリスクを調べた上で、実装・検証まで進めます。担当者しか決められない仕様は、根拠とともに確認します。
+この検査は任意の機密情報を判別する DLP、匿名化、ホストの読み取り・ネットワーク権限の強制ではありません。ホストの権限と案件の共有方針を維持します。[入力と情報境界](skills/moletta/references/security.md) を参照してください。
 
-### セキュリティ重視の導入（Git）
+## 判断を支える仕組み
 
-外部のnpm CLIを実行せず、内容を確認したGitコミットから導入する例です（macOS / Linux）。`REVIEWED_COMMIT_SHA`は実際に監査したコミットSHAに置き換えてください。リポジトリはPublicなので、通常のHTTPS読み取りに特別なGitHub認証は不要です。
+人の目的と必須制約を固定し、分解や実現方法は証拠に応じて更新します。各案は開始から成功までの構成として比較します。ある部品の高得点で、必須能力の欠落を相殺しません。
 
-配置前に `SKILL.md` と参照資料を確認してください。
+記録を使う作業では、編集可能な計画と、ツールが保存する観測・判定履歴を分けます。コマンド実行と、ブラウザー・画面・機器などホストの操作ツールによる観測を共通の手順で扱います。実験条件、対象の版、明示したローカル入力、結果の範囲を照合し、失敗や未確認事項から次の行動を選びます。[実行と再開](skills/moletta/references/workflow.md) に操作方法があります。
 
-~~~bash
-git clone https://github.com/9uiLe/effectual-change.git "$HOME/.local/share/effectual-change"
-git -C "$HOME/.local/share/effectual-change" checkout --detach REVIEWED_COMMIT_SHA
+構造検査は、要求の意味上の網羅性、観測内容の真正性、全体最適を証明しません。原文からの別文脈レビューと、実物を読む判断を併用します。製品ごとの GUI 操作はホストや案件のツールを使います。
 
-find "$HOME/.local/share/effectual-change/skills/effectual-change" -type f
-~~~
+## 仕様・設計・開発
 
-ユーザー共通（全プロジェクト）に導入する場合、**既存の同名Skillがあれば両方のリンク作成を中止**します。通常の `ln -s SOURCE DEST` は、`DEST` が既存ディレクトリの場合、その中にリンクを作るため、事前に両方の配置先を検査します。壊れたシンボリックリンクも重複として扱います。
+- [要件と保証範囲](docs/requirements.md)
+- [アーキテクチャと責務](docs/architecture.md)
+- [記録形式](skills/moletta/references/record-format.md)
+- [行動評価と改善](docs/evaluation.md)
+- [現行版と反証候補の限定試行：新規5課題・20実行](docs/measurements/2026-10-17-refutation-trial.md)
+- [最終版と基準版の9課題比較：見落とし・負担・時間・token](docs/measurements/2026-10-17-final-routing.md)
+- [初期候補の4課題比較と検証範囲](docs/measurements/2026-10-17-routing.md)
+- [開発・検証・配布](docs/development.md)
 
-<!-- safe-skill-symlink-install -->
-~~~bash
-(
-  set -eu
+最新の限定試行では、現行 `9e1823b` と指示2ファイル・計199文字の反証候補を比較し、成果に関わる見落としの改善を確認できなかったため、出荷技能・runtime は現行版を維持しています。不要な確認・承認・手作業は両版0件で、候補は合計時間14.1%、総token26.2%増でした。請求額と人時間は未測定で、一般的な有効性や品質低下を示す結果ではありません。条件と採点上の留保は限定試行の記録を参照してください。
 
-skill_source="$HOME/.local/share/effectual-change/skills/effectual-change"
-claude_target="$HOME/.claude/skills/effectual-change"
-codex_target="$HOME/.agents/skills/effectual-change"
+ローカルと CI は同じ入口で、配布物、参照、公開評価コーパス、実行ツールのテストを確認します。
 
-if [ ! -f "$skill_source/SKILL.md" ]; then
-  printf 'Skill not found: %s\n' "$skill_source" >&2
-  exit 1
-fi
+```sh
+python3 scripts/validate.py
+```
 
-for target in "$claude_target" "$codex_target"; do
-  if [ -e "$target" ] || [ -L "$target" ]; then
-    printf 'Skill already exists; refusing to modify: %s\n' "$target" >&2
-    exit 1
-  fi
-done
+この検査はモデルを呼び出さず、技能による判断改善は採点しません。改善効果は、同条件の実行記録を独立に評価して確かめます。
 
-mkdir -p "$HOME/.claude/skills" "$HOME/.agents/skills"
-ln -s "$skill_source" "$claude_target"
-ln -s "$skill_source" "$codex_target"
-)
-~~~
+## 出典
 
-既存の同名Skillを上書きしないでください。特定のプロジェクトだけに適用する場合は、そのプロジェクトの `.claude/skills/` と `.agents/skills/` に配置します。Gitによる更新時は `git fetch` の後に差分を確認し、承認したコミットへ切り替えてください。アンインストール時は該当するリンクのみ削除し、元のリポジトリを誤って削除しないでください。
-
-### CLIによる簡易導入（任意）
-
-[Vercel skills CLI](https://github.com/vercel-labs/skills) のインストール機能も利用できます。以下のコマンドは**外部CLIと依存コードを実行する**ため、組織のセキュリティポリシーに合わせてCLIの提供元・バージョン・依存を確認してください。未確認の最新版を無条件に実行せず、監査済みバージョンを明示してください。
-
-監査したCLIのバージョン番号に置き換えてください。
-
-~~~bash
-SKILLS_CLI_VERSION=REVIEWED_CLI_VERSION
-~~~
-
-npmの場合：
-
-~~~bash
-npx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
-~~~
-
-pnpmの場合：
-
-~~~bash
-pnpm dlx "skills@$SKILLS_CLI_VERSION" add 9uiLe/effectual-change --skill effectual-change -a claude-code -a codex
-~~~
-
-既定ではプロジェクト単位。ユーザー共通にする場合は `-g` を指定します。npmとpnpmのどちらかが一律に安全というわけではありません。導入後は各製品のSkill配置先に `SKILL.md` と参照資料が揃っているかを確認してください。これらのCLIによるインストールと実機での起動は、現時点で未検証です。
-
-### Skillの検証
-
-Python標準ライブラリのみで、Skillのfrontmatter・参照ファイル・自己完結性と、手動インストール時の既存Skillとの衝突防止を検査できます。frontmatterは汎用YAMLパーサーではなく、`name`と`description`をそれぞれ単一行・引用符なしの文字列に限定した形式として検証します。将来frontmatterの記法を拡張する場合はテストも更新してください。
-
-~~~bash
-python3 -m unittest discover -s tests -v
-~~~
-
-このテストでは、READMEの**実際のインストール用シンボリックリンク手順**を隔離した一時HOMEで実行し、`skills/effectual-change/`内の全参照資料がClaude Code (`.claude/skills/`) とCodex (`.agents/skills/`) の両方から読めることを確認します。また、実際のSkillディレクトリだけを各プロジェクトへコピーした場合の同一性・Markdown相対リンクも検査します。GitHub Actionsの`validate`ジョブでも自動実行します（OSはUbuntu）。
-
-**別途実機確認が必要な範囲：** Public GitHubからのClone、Claude CodeとCodexによる実際のSkill発見・明示起動・自動起動、外部`skills` CLIの導入結果、Windows上での配置。CIのファイル検査が成功しても、エージェントのSkill起動や意思決定改善が確認できたことにはなりません。結果は[Issue #6](https://github.com/9uiLe/effectual-change/issues/6)で追跡します。
-
-**検証できる範囲：** 限定的なfrontmatter文法、ファイル構造、リンクの静的整合性、および隔離環境でのリンク競合防止。汎用YAML仕様への準拠は保証しないため、公開前には[Agent Skills公式の検証方法](https://agentskills.io/specification#validation)（例：`skills-ref validate skills/effectual-change`）との照合も行ってください。Claude Code / Codexへの実インストール、発火判断、実務での意思決定品質は別途検証が必要です。進捗は [Issue #6](https://github.com/9uiLe/effectual-change/issues/6) で管理します。
-
-
-## 大切な区別
-
-- **観測事実 ≠ 正しい仕様：** コードがそう動いていても、意図された要件とは限りません。
-- **予想外の発見 ≠ なんでも採用：** 発見は再現・検証して設計判断に利用します。
-- **人間への提示 ≠ 合意：** 明示的な受け入れ条件や判断の記録が必要です。
-- **将来を予測しすぎない ≠ 保守性を犠牲にする：** 現在のテスト可能性、低結合、段階移行、復旧可能性は重視します。
-- **AIに任せる ≠ AIが全権を持つ：** セキュリティ、プライバシー、データ破壊、既存のレビュー・承認ルールを優先します。
-
-## 評価・改善
-
-現時点で効果は未検証です。[評価計画と未解決の論点](docs/evaluation.md) に従って、実際の変更タスクを使い、従来の開発プロセスとの差を調べていきます。反例も歓迎します。
-
-実在するscope-guard不具合を対象にした[独立DevinセッションのSkillなし／あり比較](docs/scope-guard-devin-comparison.md)では、開始条件・実行証拠・固定テストによる採点と限界を記録しています。
-
-より大きな[hamio Recording復旧CLIの独立比較](docs/hamio-recover-devin-comparison.md)では、両条件が固定の機能・回帰検査を満たした一方、追加テスト込みの補助検査には未解決のTTY timeoutの差がありました。一般的な有効性の結論はINCONCLUSIVEです。
-
-## 理論的背景と出典
-
-エフェクチュエーションは、起業家の意思決定についてSaras D. Sarasvathyが提唱した理論です。元の文脈では、手段、許容可能な損失、他者のコミットメント、偶然の活用、未来へのコントロールが重要です。本プロジェクトはその**独自の応用**です。原義との対応・ずれ、適用しにくいケース、既存手法との違い（仮説）は[原義と適用範囲](docs/theory.md)に整理しています。
-
-- [Sarasvathy (2001), *Causation and Effectuation*, Academy of Management Review](https://doi.org/10.5465/amr.2001.4378020)
-- [Effectuation.org: The Five Principles of Effectuation](https://effectuation.org/the-five-principles-of-effectuation-detail)
-- [Effectuation.org: Effectuation 101](https://effectuation.org/effectuation-101)
-
-## 開発・問い合わせについて
-
-このプロジェクトは**単独メンテナーによる開発**を想定しており、外部からのIssue・Pull Requestによる変更提案は受け付けていません。公開コードの閲覧・利用・フォークはMITライセンスに従って行えます。GitHub側ではIssueとPull Requestの作成範囲をCollaborators onlyに制限します。
-
-## ライセンス
+[pstack](https://github.com/cursor/plugins/tree/main/pstack) の必要な技能への振り分け、実物検証、振り返りから着想を得た独自実装です。NASA の要求追跡・全体設計・実証環境の区別、SEI の QAW・ATAM を設計上の問いに利用します。正式な準拠・認証を表すものではありません。[出典と適用範囲](skills/moletta/references/sources.md) を参照してください。
 
 [MIT License](LICENSE) — Copyright (c) 2026 9uiLe.

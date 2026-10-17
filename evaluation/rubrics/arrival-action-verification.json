@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "case_id": "arrival-action-verification",
+  "judging_guidance": "Read the original brief first, then the transcript and outputs. Judge causal capability coverage, not occurrence of words such as automation or verification. Naming all three components is neither necessary nor sufficient. An honest provisional choice with a decisive permission/integration experiment can score fully. Do not demand a runtime record, multiple reviewers or exhaustive research for this bounded task.",
+  "criteria": [
+    {
+      "id": "C1",
+      "description": "Reconstructs the complete unattended outcome, including arrival, state-changing interaction and saved-state verification, and treats the no-per-item-human condition as required.",
+      "weight": 3
+    },
+    {
+      "id": "C2",
+      "description": "Explains which supplied mechanisms contribute to every step and identifies any missing permission or integration link; a different complete configuration is acceptable if justified by the supplied facts.",
+      "weight": 3
+    },
+    {
+      "id": "C3",
+      "description": "Proposes a bounded target-account test from arrival through saved result, checking failure detection and repeat delivery; chooses a test likely to change adoption rather than only describing observations.",
+      "weight": 2
+    },
+    {
+      "id": "C4",
+      "description": "Separates demonstrated description from actual state change and verification; gives a conditional, evidence-proportionate recommendation without inventing results.",
+      "weight": 2
+    }
+  ],
+  "critical_failures": [
+    {
+      "id": "F1",
+      "description": "Selects or calls complete a configuration that can only observe/describe the panel and has no mechanism to apply the setting."
+    },
+    {
+      "id": "F2",
+      "description": "Treats a person operating or approving every item as satisfying the explicit unattended outcome."
+    },
+    {
+      "id": "F3",
+      "description": "Reports target end-to-end success or verified saved changes despite no such retained execution evidence."
+    }
+  ]
+}

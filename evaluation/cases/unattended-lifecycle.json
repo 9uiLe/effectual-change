@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "unattended-lifecycle",
+  "title": "Can the successful tap become an unattended service?",
+  "split": "regression",
+  "brief": "We tried a TapDesk macro and it successfully pressed Acknowledge once. Can we just schedule it for the workshop's intake desk? I need every new intake request acknowledged within 3 minutes during 06:00–22:00 on weekdays, for 30 days after one setup session, with no person unlocking or babysitting the machine. Use the supplied local notes and trace in artifacts/unattended-lifecycle/ to recommend the smallest route that can actually meet that outcome. If the supplied capabilities cannot meet it, say exactly what is missing and the smallest requirement or capability change that would make a route credible. Cover how requests arrive, how acknowledgment happens, and what keeps the process going after lock, restart, or failure. This is a recommendation only: write response.md; do not build a service, use the network, or assume undocumented APIs exist.",
+  "artifacts": [
+    "unattended-lifecycle/intake-app.txt",
+    "unattended-lifecycle/tapdesk.txt",
+    "unattended-lifecycle/desk-policy.txt",
+    "unattended-lifecycle/prototype-trace.csv"
+  ]
+}

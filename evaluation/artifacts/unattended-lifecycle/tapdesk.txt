@@ -1,0 +1,18 @@
+TapDesk 2.0 — installed capabilities
+
+record_and_replay: identifies visible accessibility elements and clicks them.
+It can read a visible row's status and receipt text after a click.
+
+watch_visible_element: calls a running macro when a matching element appears
+in a foreground unlocked application. It does not read server-side events
+and cannot observe elements in a locked session.
+
+schedule: asks the operating system to start TapDesk at chosen times. Starting
+TapDesk does not unlock the desktop. It can launch GateInbox, but GateInbox
+cannot be interacted with until a person unlocks the session.
+
+Macro execution is in the logged-in desktop user's process. TapDesk does not
+install a persistent background service, resume an interrupted macro, restart
+it after a crash, or restart it after an operating-system reboot by default.
+Its schedule can launch a new macro invocation after login. A macro author
+must implement receipt checks and retry behavior; replay alone has neither.

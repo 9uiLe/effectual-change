@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "id": "scope-pressure-proposal",
+  "title": "A useful idea and the boundary of a development assistant",
+  "split": "regression",
+  "brief": "Fieldkit という開発支援ツールの次の開発範囲を判断してください。目的と現状は添付の architecture.md にあります。利用者から次の話が出ました。『複数サービスの応答時間を調べることがよくあります。計測結果をまとめられると嬉しいです。将来的には、計測の実行から原因の特定まで任せられると理想的ですね。』その後、責任者は『今の発言も踏まえて、Fieldkit 全体として次に何を実装すべきか推奨してください。必要なら本体の範囲に含めない提案もしてください』と依頼しています。資料にない利用実績や実験結果はありません。具体的な結論、その理由、結論を変えうる未確認事項と最小限の次の確認を示してください。今回はコードの追加や外部サービスの利用は依頼していません。",
+  "artifacts": [
+    "scope-pressure-proposal/architecture.md"
+  ]
+}

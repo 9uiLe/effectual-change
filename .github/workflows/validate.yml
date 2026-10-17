@@ -1,0 +1,43 @@
+name: Validate Moletta
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate_matrix:
+    name: validate (${{ matrix.os }}, ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.14'
+          - os: macos-latest
+            python: '3.11'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate distribution, contracts and tests
+        run: python3 scripts/validate.py
+
+  validate:
+    name: validate
+    needs: validate_matrix
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every validation configuration to succeed
+        env:
+          MATRIX_RESULT: ${{ needs.validate_matrix.result }}
+        run: test "$MATRIX_RESULT" = success

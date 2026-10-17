@@ -1,0 +1,19 @@
+GateInbox desktop application — deployment notes, supplied by its vendor
+
+A request becomes visible in GateInbox's Inbox after the desktop application
+fetches it. The application fetches every 30 seconds while its window is
+foreground and the desktop session is unlocked. It does not fetch while the
+session is locked or the application is closed. Requests stay on the server
+until acknowledged; the next successful fetch includes outstanding requests.
+
+In the visible Inbox, selecting a request and pressing Acknowledge submits
+the action. A successful submission changes that row to Acknowledged and
+shows a receipt ID. Clicking is not itself a delivery receipt. A lost
+connection can leave the row unchanged. Retrying an outstanding request is
+safe; an acknowledged request is not shown among outstanding requests.
+
+This installation exposes its visible Inbox and buttons to desktop
+accessibility tools. It has no documented webhook, background notification,
+mail export, command-line client, or headless acknowledgment endpoint. These
+notes do not establish whether a different vendor product or license could
+provide one. There is no such license or integration in the supplied setup.

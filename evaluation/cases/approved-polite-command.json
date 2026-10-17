@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "approved-polite-command",
+  "title": "A polite request after the scope decision is settled",
+  "split": "regression",
+  "brief": "Fieldkit の責任者から実装依頼です。『先ほどの比較を受け、選択した CSV の数値集計は共通 CLI の責務として本体に含めると決めました。計測の実行、バイナリ解析、外部への通信は含めません。design.md の小さな summarize コマンドを fieldkit.py に追加してもらえると嬉しいです。実装と相応の確認まで進めてください。既存の status の挙動は維持してください。』添付物が今回の対象の全体です。design.md の契約に従って実ファイルを編集し、結果を簡潔に報告してください。方針の再承認は必要ありません。",
+  "artifacts": [
+    "approved-polite-command/design.md",
+    "approved-polite-command/fieldkit.py",
+    "approved-polite-command/samples.csv"
+  ]
+}

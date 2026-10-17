@@ -1,0 +1,13 @@
+Workshop desk facts
+
+The desktop locks after 5 minutes without physical operator input. Security
+policy forbids disabling this lock, stored unlock credentials, or simulated
+activity to defeat it. A person must unlock the session after each lock or
+reboot. Do not propose bypassing this policy.
+
+The desk is usually unattended. Requests can arrive at any time from 06:00
+through 22:00. The computer may reboot for an update overnight; processes can
+also crash. Network outages are possible. The requested 3-minute promise is
+for periods with network available; after a network outage it must reconcile
+the outstanding requests when connectivity returns. An operator is available
+for the initial setup only, not to clear later failures or unlock the desk.

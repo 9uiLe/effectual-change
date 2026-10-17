@@ -1,0 +1,6 @@
+metric,unit,value
+latency,ms,12
+payload,bytes,100
+latency,ms,18
+payload,bytes,200
+latency,ms,30

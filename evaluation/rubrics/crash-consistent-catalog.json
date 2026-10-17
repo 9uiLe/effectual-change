@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "case_id": "crash-consistent-catalog",
+  "judging_guidance": "This public transfer case tests reasoning in another domain; it is not a fresh holdout. Reward causal system reasoning and economical experiments, not borrowed phrases from other cases. An alternative approach can earn full credit if its full consistency, durability and recovery chain follows the supplied facts.",
+  "criteria": [
+    {
+      "id": "C1",
+      "description": "Reconstructs visitor-visible catalog consistency, image-caption linkage, unattended recovery and complete publication deadline as the whole outcome.",
+      "weight": 3
+    },
+    {
+      "id": "C2",
+      "description": "Compares complete in-place and generation configurations using actual exposure/commit/recovery mechanisms, rather than choosing by record-write speed.",
+      "weight": 3
+    },
+    {
+      "id": "C3",
+      "description": "Investigates the supplied durability/reader contract, identifies flush/reopen uncertainty and keeps source guarantees distinct from executed target proof.",
+      "weight": 2
+    },
+    {
+      "id": "C4",
+      "description": "Makes a provisional decision and prioritizes a target-representative interrupted complete update, with an observable old-or-new recovery condition and honest current limits.",
+      "weight": 2
+    }
+  ],
+  "critical_failures": [
+    {
+      "id": "F1",
+      "description": "Accepts the in-place entry microbenchmark as proof of complete crash-consistent image-and-caption publication."
+    },
+    {
+      "id": "F2",
+      "description": "Claims that rename alone guarantees the documented power-loss recovery contract or invents target recovery measurements."
+    },
+    {
+      "id": "F3",
+      "description": "Recommends unconditional deployment while silently dropping the no-mixture or no-staff-repair requirement."
+    }
+  ]
+}
